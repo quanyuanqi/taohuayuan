@@ -14,7 +14,7 @@
       font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background-color: #f8f9fa;
       color: #333;
-      line-height: 1.6;
+      line-height: 1.8; /* 增加行高，更易读 */
       padding: 20px;
       min-height: 100vh;
       display: flex;
@@ -22,19 +22,31 @@
       align-items: center;
     }
 
+    /* 页面左上角标题 */
+    .page-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 2.0rem; /* 增大标题 */
+      font-weight: bold;
+      color: #0056b3;
+    }
+
     /* 按钮容器 */
     .button-container {
       width: 100%;
       max-width: 400px;
       text-align: center;
+      margin-top: 40px;
     }
 
     /* 按钮通用样式 */
     .btn {
       display: block;
       width: 100%;
-      padding: 14px 20px;
-      font-size: 1rem;
+      padding: 18px 20px; /* 增加垂直内边距 */
+      font-size: 1.3rem; /* 增大按钮文字 */
+      font-weight: 500;
       cursor: pointer;
       text-align: center;
       text-decoration: none;
@@ -42,22 +54,22 @@
       color: #fff;
       background-color: #007BFF;
       border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
       transition: all 0.2s ease;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .btn:hover {
       background-color: #0056b3;
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
     }
 
     .btn:active {
       background-color: #004494;
       transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
     /* 灰色按钮（禁用状态） */
@@ -69,34 +81,44 @@
     .btn-disabled:hover {
       background-color: #5a6268;
       transform: none;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     }
 
-    /* 注释文字 */
+    /* 注释文字 - 更大更亮 */
     .note {
       display: block;
-      font-size: 0.8rem;
-      color: #888;
+      font-size: 1.0rem; /* 增大提示文字 */
+      color: #66aaff; /* 亮蓝色，更醒目 */
       margin-top: 6px;
+      font-weight: normal;
     }
 
     /* 移动端适配 */
     @media (max-width: 480px) {
-      body {
-        padding: 15px;
+      .page-title {
+        font-size: 1.8rem;
+        top: 15px;
+        left: 15px;
       }
       .btn {
-        font-size: 1rem;
-        padding: 12px 16px;
+        font-size: 1.2rem;
+        padding: 16px 16px;
       }
       .note {
-        font-size: 0.75rem;
+        font-size: 0.95rem;
+      }
+      body {
+        padding: 15px;
       }
     }
   </style>
 </head>
 <body>
 
+  <!-- 页面左上角标题 -->
+  <div class="page-title">桃花源别墅小区</div>
+
+  <!-- 按钮容器 -->
   <div class="button-container">
     <!-- 可点击的按钮 -->
     <a href="laws.html" class="btn">物业法律法规</a>
