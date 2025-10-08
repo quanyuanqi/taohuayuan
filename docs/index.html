@@ -1,42 +1,122 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桃花源</title>
-    <style>
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            outline: none;
-            color: #fff;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px #999;
-            transition: all 0.3s ease;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>桃花源</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        .button:hover {background-color: #0056b3}
+    /* 按钮容器 */
+    .button-container {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
 
-        .button:active {
-            background-color: #0056b3;
-            box-shadow: 0 1px #666;
-            transform: translateY(2px);
-        }
-    </style>
+    /* 按钮通用样式 */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      outline: none;
+      color: #fff;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+      margin-bottom: 16px;
+    }
+
+    .btn:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:active {
+      background-color: #004494;
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 灰色按钮（禁用状态） */
+    .btn-disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    .btn-disabled:hover {
+      background-color: #5a6268;
+      transform: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 注释文字 */
+    .note {
+      display: block;
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+      .btn {
+        font-size: 1rem;
+        padding: 12px 16px;
+      }
+      .note {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<!-- 其他内容 -->
+  <div class="button-container">
+    <!-- 可点击的按钮 -->
+    <a href="laws.html" class="btn">物业法律法规</a>
 
-<a href="laws.html" class="button">业主物业法律法规</a>
+    <!-- 禁用按钮 + 注释 -->
+    <div class="btn btn-disabled">
+      小区建言献策
+      <span class="note">功能稍后发布</span>
+    </div>
 
-<!-- 其他内容 -->
+    <div class="btn btn-disabled">
+      小区历史文化
+      <span class="note">功能稍后发布</span>
+    </div>
+
+    <div class="btn btn-disabled">
+      小区新闻报道
+      <span class="note">功能稍后发布</span>
+    </div>
+  </div>
 
 </body>
 </html>
