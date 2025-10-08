@@ -17,13 +17,30 @@
       line-height: 1.6;
       padding: 20px;
     }
-    h1 {
-      font-size: 1.5rem;
-      color: #0056b3;
+
+    /* 自定义标题样式 */
+    .title-container {
       text-align: center;
       margin-bottom: 20px;
-      font-weight: 600;
     }
+    .title-main {
+      font-size: 1.8rem;
+      color: #0056b3;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .title-sub {
+      font-size: 1.3rem;
+      color: #333;
+      font-weight: normal;
+      margin-bottom: 4px;
+    }
+    .title-tag {
+      font-size: 1rem;
+      color: #666;
+      font-weight: normal;
+    }
+
     .links {
       display: flex;
       flex-direction: column;
@@ -54,12 +71,20 @@
       color: #888;
       font-size: 0.85rem;
     }
+
+    /* 移动端适配 */
     @media (max-width: 480px) {
       body {
         padding: 15px;
       }
-      h1 {
-        font-size: 1.3rem;
+      .title-main {
+        font-size: 1.5rem;
+      }
+      .title-sub {
+        font-size: 1.1rem;
+      }
+      .title-tag {
+        font-size: 0.9rem;
       }
       a {
         padding: 12px 14px;
@@ -69,8 +94,15 @@
   </style>
 </head>
 <body>
-  <h1>桃花源别墅小区业主物业法规政策学习文件</h1>
 
+  <!-- 自定义多行标题 -->
+  <div class="title-container">
+    <div class="title-main">桃花源别墅小区</div>
+    <div class="title-sub">业主物业法规政策</div>
+    <div class="title-tag">学习文件</div>
+  </div>
+
+  <!-- 链接列表 -->
   <div class="links">
     <a href="https://www.court.gov.cn/zixun/xiangqing/233181.html" target="_blank">中华人民共和国民法典</a>
     <a href="https://huixianju.cn/wp-content/uploads/2021/08/%E4%B8%AD%E5%8D%8E%E4%BA%BA%E6%B0%91%E5%85%B1%E5%92%8C%E5%9B%BD%E7%89%A9%E4%B8%9A%E7%AE%A1%E7%90%86%E6%9D%A1%E4%BE%8B-2018.pdf" target="_blank">中华人民共和国物业管理条例</a>
@@ -92,5 +124,3 @@
   </footer>
 </body>
 </html>
-
-
