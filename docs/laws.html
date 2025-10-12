@@ -31,4 +31,134 @@
       text-decoration: none;
     }
 
-    /* 自
+    /* 自定义多行标题样式 */
+    .title-container {
+      text-align: center;
+      margin: 60px auto 24px;
+      max-width: 600px;
+    }
+    .title-main {
+      font-size: 1.8rem;
+      color: #0056b3;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .title-sub {
+      font-size: 1.3rem;
+      color: #333;
+      font-weight: normal;
+      margin-bottom: 4px;
+    }
+    .title-tag {
+      font-size: 1.0rem;
+      color: #666;
+      font-weight: normal;
+    }
+
+    /* 链接列表样式 */
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+    .links a {
+      display: block;
+      padding: 16px 20px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      color: #0077cc;
+      text-decoration: none;
+      font-size: 1.05rem;
+      transition: all 0.2s ease;
+    }
+    .links a:hover {
+      background-color: #f0f5ff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+    .links a:active {
+      background-color: #e6f0ff;
+      transform: translateY(0);
+    }
+
+    footer {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      margin-top: 30px;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+      .page-title {
+        font-size: 1.8rem;
+        top: 15px;
+        left: 15px;
+      }
+      .title-main {
+        font-size: 1.6rem;
+      }
+      .title-sub {
+        font-size: 1.2rem;
+      }
+      .title-tag {
+        font-size: 0.95rem;
+      }
+      .links a {
+        font-size: 1.0rem;
+        padding: 14px 16px;
+      }
+      .links {
+        gap: 12px;
+      }
+      footer {
+        font-size: 0.85rem;
+      }
+      body {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 左上角“桃花源”标题（带链接） -->
+  <a href="https://www.taohuayuan.com" target="_blank" class="page-title">桃花源</a>
+
+  <!-- 原有标题区域，保持内容不变 -->
+  <div class="title-container">
+    <div class="title-main">业主物业法规政策</div>
+    <div class="title-sub">学习园地</div>
+    <div class="title-tag">第一版</div>
+  </div>
+
+  <!-- 链接列表 - 完全保留原有内容 -->
+  <div class="links">
+    <a href="http://legal.people.com.cn/n1/2020/0602/c42510-31731656.html" target="_blank">中华人民共和国民法典</a>
+    <a href="https://www.gov.cn/gongbao/content/2019/content_5468878.htm" target="_blank">中华人民共和国物业管理条例</a>
+    <a href="https://www.scspc.gov.cn/flfgk/scfg/202110/t20211008_40310.html" target="_blank">四川省物业管理条例</a>
+    <a href="https://mp.weixin.qq.com/s/hzCAG4K7hqldqFgyk1R9fA" target="_blank">四川省物业服务招标投标管理办法</a>
+    <a href="https://mp.weixin.qq.com/s/HU9t3iTrGC5bbajiZ9f7ng" target="_blank">《四川省业主电子投票表决规则》</a>
+    <a href="http://www.wuyeguancha.com/policy/928.html" target="_blank">《四川省物业服务人退出物业服务项目管理办法》</a>
+    <a href="https://mp.weixin.qq.com/s/Sv9nbjMu1tnu6lhdHsnTEw" target="_blank">《四川省业主大会和业主委员会指导规则》</a>
+    <a href="https://cd.bendibao.com/live/2024418/182384.shtm" target="_blank">成都市物业管理条例</a>
+    <a href="https://mp.weixin.qq.com/s/o5QpfBnTvY9xNH_M4DaW9g" target="_blank">《成都市业主大会和业主委员会指导细则》</a>
+    <a href="https://mp.weixin.qq.com/s/QMIm-TRpQe0h_4SMjUUsmA" target="_blank">《成都市业主电子投票规则》</a>
+    <a href="http://www.scwygl.com/News_Show.php?theId=12852" target="_blank">《成都市物业管理委员会组建运行实施办法（试行）》</a>
+    <a href="http://www.scwygl.com/News_Show.php?theId=12070" target="_blank">《成都市住宅小区物业服务企业履职清单》</a>
+    <a href="https://cdzj.chengdu.gov.cn/cdzj/c131968/2024-04/16/content_4dce6b2adcb24b42806cd6dc71d0115d.shtml" target="_blank">成都市住建局关于推广使用“成都智慧物业”微信小程序的通知</a>
+    <a href="https://mp.weixin.qq.com/s/LX8SVGEfLhxV24xcxX9K1Q" target="_blank">中华人民共和国刑法(2024修正版)（上）</a>
+    <a href="https://mp.weixin.qq.com/s/5Nucv9j8D5uUgFLUEna-mg" target="_blank">中华人民共和国反有组织犯罪法</a>
+    <a href="https://mp.weixin.qq.com/s/ILWoJdUoc3wtDju_mU1v6A" target="_blank">中华人民共和国治安管理处罚法(2025修订版)</a>
+  </div>
+
+  <!-- 页脚 -->
+  <footer>
+    <p>更新时间：2025年10月8日</p>
+  </footer>
+
+</body>
+</html>
