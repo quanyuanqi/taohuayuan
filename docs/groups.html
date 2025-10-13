@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>桃花源</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.8;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* 页面左上角标题 */
+    .page-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 2.0rem;
+      font-weight: bold;
+      color: #0056b3;
+      text-decoration: none;
+    }
+
+    /* 主标题区域 */
+    .title-container {
+      text-align: center;
+      margin: 60px auto 30px;
+      max-width: 600px;
+    }
+    .title-main {
+      font-size: 1.8rem;
+      color: #0056b3;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .title-sub {
+      font-size: 1.1rem;
+      color: #666;
+      font-weight: normal;
+    }
+
+    /* 图片容器 */
+    .image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px auto;
+      max-width: 600px;
+      padding: 20px;
+    }
+    .image-container img {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      object-fit: cover;
+    }
+
+    /* 页脚 */
+    footer {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      margin-top: 40px;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+      .page-title {
+        font-size: 1.8rem;
+        top: 15px;
+        left: 15px;
+      }
+      .title-main {
+        font-size: 1.6rem;
+      }
+      .title-sub {
+        font-size: 1.0rem;
+      }
+      .image-container img {
+        max-width: 260px;
+      }
+      footer {
+        font-size: 0.85rem;
+      }
+      body {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 左上角“桃花源”标题（带链接） -->
+  <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
+
+  <!-- 页面主标题 -->
+  <div class="title-container">
+    <div class="title-main">桃花源闲置物品微信群</div>
+    <div class="title-sub">扫码加入，物尽其用，邻里互助</div>
+  </div>
+
+  <!-- 图片展示区域 -->
+  <div class="image-container">
+    <img src="https://github.com/quanyuanqi/taohuayuan/blob/main/images/dealgroup.jpg?raw=true" alt="微信群二维码" />
+  </div>
+
+  <!-- 页脚 -->
+  <footer>
+    <p>更新时间：2025年10月13日</p>
+  </footer>
+
+</body>
+</html>
