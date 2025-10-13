@@ -14,7 +14,7 @@
       font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background-color: #f8f9fa;
       color: #333;
-      line-height: 1.8; /* 增加行高，更易读 */
+      line-height: 1.8;
       padding: 20px;
       min-height: 100vh;
       display: flex;
@@ -22,14 +22,28 @@
       align-items: center;
     }
 
-    /* 页面左上角标题 */
-    .page-title {
+    /* 左上角标题区域容器 */
+    .header-container {
       position: absolute;
       top: 20px;
       left: 20px;
-      font-size: 2.0rem; /* 增大标题 */
+      text-align: center; /* 确保内部内容居中 */
+    }
+
+    /* 标题样式 - 去掉下划线 */
+    .site-title {
+      font-size: 2.0rem;
       font-weight: bold;
       color: #0056b3;
+      text-decoration: none; /* 去掉下划线 */
+      display: block;
+    }
+
+    /* 子域名文本 */
+    .site-domain {
+      font-size: 0.95rem;
+      color: #555;
+      margin-top: 4px;
     }
 
     /* 按钮容器 */
@@ -44,8 +58,8 @@
     .btn {
       display: block;
       width: 100%;
-      padding: 18px 20px; /* 增加垂直内边距 */
-      font-size: 1.3rem; /* 增大按钮文字 */
+      padding: 18px 20px;
+      font-size: 1.3rem;
       font-weight: 500;
       cursor: pointer;
       text-align: center;
@@ -84,21 +98,26 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     }
 
-    /* 注释文字 - 更大更亮 */
+    /* 注释文字 */
     .note {
       display: block;
-      font-size: 1.0rem; /* 增大提示文字 */
-      color: #66aaff; /* 亮蓝色，更醒目 */
+      font-size: 1.0rem;
+      color: #66aaff;
       margin-top: 6px;
       font-weight: normal;
     }
 
     /* 移动端适配 */
     @media (max-width: 480px) {
-      .page-title {
-        font-size: 1.8rem;
+      .header-container {
         top: 15px;
         left: 15px;
+      }
+      .site-title {
+        font-size: 1.8rem;
+      }
+      .site-domain {
+        font-size: 0.9rem;
       }
       .btn {
         font-size: 1.2rem;
@@ -115,15 +134,17 @@
 </head>
 <body>
 
-  <!-- 页面左上角标题 -->
-  <a href="https://www.taohuayuan.com" target="_blank" class="page-title">桃花源</a>
+  <!-- 左上角标题容器 -->
+  <div class="header-container">
+    <a href="https://www.taohuayuan.com" target="_blank" class="site-title">桃花源</a>
+    <div class="site-domain">www.taohuayuan.org.cn</div>
+  </div>
 
   <!-- 按钮容器 -->
   <div class="button-container">
-    <!-- 可点击的按钮 -->
     <a href="laws.html" class="btn">物业法律法规</a>
     <a href="groups.html" class="btn">小区闲置物品群</a>
-    <!-- 禁用按钮 + 注释 -->
+
     <div class="btn btn-disabled">
       小区建言献策
       <span class="note">功能稍后发布</span>
