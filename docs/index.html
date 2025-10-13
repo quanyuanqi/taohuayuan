@@ -22,28 +22,15 @@
       align-items: center;
     }
 
-    /* 左上角标题区域容器 */
-    .header-container {
+    /* 页面左上角标题 - 无下划线 */
+    .page-title {
       position: absolute;
       top: 20px;
       left: 20px;
-      text-align: center; /* 确保内部内容居中 */
-    }
-
-    /* 标题样式 - 去掉下划线 */
-    .site-title {
       font-size: 2.0rem;
       font-weight: bold;
       color: #0056b3;
       text-decoration: none; /* 去掉下划线 */
-      display: block;
-    }
-
-    /* 子域名文本 */
-    .site-domain {
-      font-size: 0.95rem;
-      color: #555;
-      margin-top: 4px;
     }
 
     /* 按钮容器 */
@@ -109,15 +96,10 @@
 
     /* 移动端适配 */
     @media (max-width: 480px) {
-      .header-container {
+      .page-title {
+        font-size: 1.8rem;
         top: 15px;
         left: 15px;
-      }
-      .site-title {
-        font-size: 1.8rem;
-      }
-      .site-domain {
-        font-size: 0.9rem;
       }
       .btn {
         font-size: 1.2rem;
@@ -134,11 +116,8 @@
 </head>
 <body>
 
-  <!-- 左上角标题容器 -->
-  <div class="header-container">
-    <a href="https://www.taohuayuan.com" target="_blank" class="site-title">桃花源</a>
-    <div class="site-domain">www.taohuayuan.org.cn</div>
-  </div>
+  <!-- 页面左上角标题，无下划线 -->
+  <a href="https://www.taohuayuan.com" target="_blank" class="page-title">桃花源</a>
 
   <!-- 按钮容器 -->
   <div class="button-container">
