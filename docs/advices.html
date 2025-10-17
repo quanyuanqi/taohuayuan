@@ -1,99 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Share Advice & Comment</title>
-<style>
-body { font-family: Arial; max-width: 700px; margin: 2em auto; }
-textarea, input { width: 100%; margin: 5px 0; padding: 8px; }
-button { padding: 6px 12px; margin-top: 5px; }
-.post { border-bottom: 1px solid #ddd; margin: 1em 0; padding-bottom: 10px; }
-.comment { margin-left: 1em; color: gray; border-left: 2px solid #eee; padding-left: 5px; margin-top:5px;}
-</style>
+<meta charset="utf-8">
+<title>Advices</title>
 </head>
 <body>
-
-<h1> Share Your Advice</h1>
-
-<h2>New Post</h2>
-<input id="title" placeholder="Title" />
-<textarea id="content" placeholder="Write HTML content here..."></textarea>
+<h1>Submit New Post</h1>
+<input id="title" placeholder="Title"><br>
+<textarea id="content" placeholder="HTML content"></textarea><br>
 <button onclick="submitPost()">Submit Post</button>
 
-<h2>Approved Posts</h2>
+<h2>Posts</h2>
 <div id="posts"></div>
 
 <script>
 const WORKER_URL = "https://tiny-haze-9454.jamic2003.workers.dev";
 
-async function submitPost() {
-  const title = document.getElementById("title").value.trim();
-  const content = document.getElementById("content").value.trim();
-  if (!title || !content) return alert("Fill title & content.");
-  await fetch(WORKER_URL + "/api/post", {
+// Submit post
+async function submitPost(){
+  const title=document.getElementById("title").value;
+  const content=document.getElementById("content").value;
+  await fetch(`${WORKER_URL}/api/post`,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ title, content })
+    body:JSON.stringify({title, content})
   });
   alert("Submitted for review!");
   loadPosts();
 }
 
-async function submitComment(postId, inputEl) {
-  const content = inputEl.value.trim();
-  if (!content) return;
-  await fetch(WORKER_URL + "/api/comment", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ postId, content })
-  });
-  alert("Comment submitted for review!");
-  inputEl.value = "";
-  loadPosts();
-}
-
-async function loadPosts() {
-  const res = await fetch(WORKER_URL + "/api/posts");
-  const posts = await res.json();
-  const postsDiv = document.getElementById("posts");
-  postsDiv.innerHTML = "";
-
-  for (const postFile of posts) {
-    const htmlRes = await fetch(WORKER_URL + "/post/" + postFile);
-    const html = await htmlRes.text();
-
-    const postDiv = document.createElement("div");
-    postDiv.className = "post";
-    postDiv.innerHTML = `<div>${html}</div>`;
-
-    // Comments section
-    const commentsRes = await fetch(WORKER_URL + "/api/comments/" + postFile);
-    const comments = await commentsRes.json();
-    const commentContainer = document.createElement("div");
-    comments.forEach(c => {
-      const div = document.createElement("div");
-      div.className = "comment";
-      div.innerHTML = c.content;
-      commentContainer.appendChild(div);
-    });
-    postDiv.appendChild(commentContainer);
-
-    // Comment input
-    const commentInput = document.createElement("textarea");
-    commentInput.placeholder = "Write a comment...";
-    const submitBtn = document.createElement("button");
-    submitBtn.innerText = "Submit Comment";
-    submitBtn.onclick = () => submitComment(postFile, commentInput);
-
-    postDiv.appendChild(commentInput);
-    postDiv.appendChild(submitBtn);
-
-    postsDiv.appendChild(postDiv);
+// Load approved posts
+async function loadPosts(){
+  const res=await fetch(`${WORKER_URL}/api/posts`);
+  const files=await res.json();
+  const container=document.getElementById("posts");
+  container.innerHTML="";
+  for(const f of files){
+    const postRes=await fetch(`${WORKER_URL}/post/${f}`);
+    const html=await postRes.text();
+    const div=document.createElement("div");
+    div.innerHTML=html;
+    container.appendChild(div);
   }
 }
 
 loadPosts();
 </script>
-
 </body>
 </html>
