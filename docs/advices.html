@@ -1,50 +1,391 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Advices</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advice Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin: -20px -20px 40px -20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .posts-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .posts-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .post-list {
+            list-style: none;
+        }
+
+        .post-item {
+            border-bottom: 1px solid #e1e5e9;
+            padding: 20px 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .post-item:last-child {
+            border-bottom: none;
+        }
+
+        .post-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        .post-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .post-date {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .post-content {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #3c3;
+        }
+    </style>
 </head>
 <body>
-<h1>Submit New Post</h1>
-<input id="title" placeholder="Title"><br>
-<textarea id="content" placeholder="HTML content"></textarea><br>
-<button onclick="submitPost()">Submit Post</button>
+    <div class="container">
+        <header>
+            <h1>Advice Board</h1>
+            <p class="subtitle">Share your wisdom and help others</p>
+        </header>
 
-<h2>Posts</h2>
-<div id="posts"></div>
+        <div class="form-section">
+            <h2>Share Your Advice</h2>
+            <form id="advice-form">
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" required placeholder="Enter a descriptive title for your advice">
+                </div>
+                <div class="form-group">
+                    <label for="content">Content:</label>
+                    <textarea id="content" name="content" required placeholder="Share your advice, tips, or insights here..."></textarea>
+                </div>
+                <button type="submit" class="submit-btn" id="submit-btn">Submit Advice</button>
+            </form>
+            <div id="form-message"></div>
+        </div>
 
-<script>
-const WORKER_URL = "https://tiny-haze-9454.jamic2003.workers.dev";
+        <div class="posts-section">
+            <h2 class="posts-title">Recent Advice</h2>
+            <div id="posts-loading" class="loading">Loading posts...</div>
+            <ul id="posts-list" class="post-list" style="display: none;"></ul>
+        </div>
+    </div>
 
-// Submit post
-async function submitPost(){
-  const title=document.getElementById("title").value;
-  const content=document.getElementById("content").value;
-  await fetch(`${WORKER_URL}/api/post`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({title, content})
-  });
-  alert("Submitted for review!");
-  loadPosts();
-}
+    <script>
+        /*
+        SETUP INSTRUCTIONS:
+        
+        1. GitHub Repository Setup:
+           - Create a 'docs/posts/' folder in your GitHub repository
+           - Generate a GitHub Personal Access Token with 'repo' permissions
+           - Note your GitHub username/organization name and repository name
+        
+        2. Cloudflare Worker Setup:
+           - Create a new Cloudflare Worker
+           - Copy the code from 'cloudflare-worker.js' file
+           - Set these environment variables in Worker Settings > Variables:
+             * GITHUB_TOKEN: Your GitHub personal access token
+             * GITHUB_OWNER: Your GitHub username or organization name  
+             * GITHUB_REPO: Your repository name
+             * GITHUB_FOLDER: docs/posts (or your preferred folder path)
+           - Deploy the worker and note the URL
+        
+        3. Update Configuration:
+           - Replace the values below with your actual details
+        */
+        
+        // Configuration - Update these with your actual values
+        const GITHUB_OWNER = 'your-username'; // Replace with your GitHub username
+        const GITHUB_REPO = 'your-repo'; // Replace with your repository name
+        const GITHUB_FOLDER = 'docs/posts'; // Folder where posts will be stored
+        const CLOUDFLARE_WORKER_URL = 'https://your-worker.your-subdomain.workers.dev'; // Replace with your Cloudflare Worker URL
 
-// Load approved posts
-async function loadPosts(){
-  const res=await fetch(`${WORKER_URL}/api/posts`);
-  const files=await res.json();
-  const container=document.getElementById("posts");
-  container.innerHTML="";
-  for(const f of files){
-    const postRes=await fetch(`${WORKER_URL}/post/${f}`);
-    const html=await postRes.text();
-    const div=document.createElement("div");
-    div.innerHTML=html;
-    container.appendChild(div);
-  }
-}
+        // Global state
+        let posts = [];
 
-loadPosts();
-</script>
+        // DOM elements
+        const form = document.getElementById('advice-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const formMessage = document.getElementById('form-message');
+        const postsList = document.getElementById('posts-list');
+        const postsLoading = document.getElementById('posts-loading');
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+            setupFormSubmission();
+        });
+
+        // Load all posts
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${CLOUDFLARE_WORKER_URL}/posts`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                posts = await response.json();
+                renderPosts();
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                postsLoading.innerHTML = '<div class="error">Failed to load posts. Please try again later.</div>';
+            }
+        }
+
+        // Render posts to the page
+        function renderPosts() {
+            postsLoading.style.display = 'none';
+            postsList.style.display = 'block';
+            
+            if (posts.length === 0) {
+                postsList.innerHTML = '<div class="loading">No advice posts yet. Be the first to share!</div>';
+                return;
+            }
+
+            // Sort posts by date (newest first)
+            posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            postsList.innerHTML = posts.map(post => `
+                <li class="post-item" onclick="togglePost('${post.id}')">
+                    <div class="post-title">${escapeHtml(post.title)}</div>
+                    <div class="post-date">${new Date(post.date).toLocaleDateString()}</div>
+                    <div class="post-content" id="content-${post.id}">
+                        ${escapeHtml(post.content).replace(/\n/g, '<br>')}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // Toggle post content visibility
+        function togglePost(postId) {
+            const contentElement = document.getElementById(`content-${postId}`);
+            if (contentElement) {
+                const isVisible = contentElement.style.display !== 'none';
+                contentElement.style.display = isVisible ? 'none' : 'block';
+                
+                // Close other open posts
+                if (!isVisible) {
+                    document.querySelectorAll('.post-content').forEach(el => {
+                        if (el.id !== `content-${postId}`) {
+                            el.style.display = 'none';
+                        }
+                    });
+                }
+            }
+        }
+
+        // Setup form submission
+        function setupFormSubmission() {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('title').value.trim();
+                const content = document.getElementById('content').value.trim();
+
+                if (!title || !content) {
+                    showMessage('Please fill in both title and content.', 'error');
+                    return;
+                }
+
+                const postData = {
+                    title,
+                    content,
+                    date: new Date().toISOString()
+                };
+
+                try {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+
+                    const response = await fetch(`${CLOUDFLARE_WORKER_URL}/posts`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(postData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    showMessage('Your advice has been submitted successfully!', 'success');
+                    form.reset();
+                    
+                    // Reload posts to show the new one
+                    await loadPosts();
+
+                } catch (error) {
+                    console.error('Error submitting post:', error);
+                    showMessage('Failed to submit your advice. Please try again.', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Advice';
+                }
+            });
+        }
+
+        // Show message to user
+        function showMessage(message, type) {
+            formMessage.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                formMessage.innerHTML = '';
+            }, 5000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
 </body>
 </html>
