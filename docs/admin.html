@@ -1,24 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Panel</title>
-<style>
-body { font-family: Arial; padding: 20px; max-width: 1000px; margin: auto; }
-input, textarea { width: 100%; margin: 5px 0; padding: 6px; }
-button { padding: 6px 12px; margin: 2px; }
-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-th { background: #eee; }
-</style>
+  <meta charset="UTF-8">
+  <title>Admin - Pending Advice</title>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f9fafc; color: #333; }
+    h1 { text-align: center; }
+    #login-section, #admin-section { max-width: 800px; margin: 0 auto; }
+    input[type=password] { width: 100%; padding: 10px; margin: 10px 0; }
+    button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
+    .post { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+    .post-title { font-weight: bold; }
+  </style>
 </head>
 <body>
-<h1>🛠 Admin Review Panel</h1>
+  <h1>Admin Panel</h1>
 
-<div id="login-area">
-  <input type="password" id="password" placeholder="Admin password">
-  <button onclick="login()">Login</button>
-  <p id="login-msg" style="color:red"></p>
-</div>
+  <div id="login-section">
+    <h3>Enter Admin Password</h3>
+    <input type="password" id="admin-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <div id="login-error" style="color:red;"></div>
+  </div>
 
-<div id="admin-area" style="display
+  <div id="admin-section" style="display:none;">
+    <h3>Pending Posts</h3>
+    <div id="posts"></div>
+  </div>
+
+  <script>
+    const WORKER_URL = 'https://tiny-haze-9454.jamic2003.workers.dev/';
+    let adminPassword = '';
+
+    async function login() {
+      adminPassword = document.getElementById('admin-password').value.trim();
+      if (!adminPassword) return;
+      document.getElementById('login-error').textContent = '';
+      try {
+        const res = await fetch(`${WORKER_URL}/admin/pending`, {
+          headers: { Authorization: 'Bearer ' + adminPassword }
+        });
+        if (!res.ok) throw new Error('Invalid password');
+        const posts = await res.json();
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('admin-section').style.display = 'block';
+        renderPosts(posts);
+      } catch (e) {
+        document.getElementById('login-error').textContent = 'Login failed.';
+      }
+    }
+
+    function renderPosts(posts) {
+      const container = document.getElementById('posts');
+      if (!posts.length) {
+        container.innerHTML = '<p>No pending posts.</p>';
+        return;
+      }
+      container.innerHTML = posts.map(p => `
+        <div class="post">
+          <div class="post-title">${p.title}</div>
+          <div class="post-content">${p.content}</div>
+          <button onclick="approve('${p.id}')">Approve</button>
+          <button onclick="deletePost('${p.id}')">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    async function approve(id) {
+      if (!confirm('Approve this post?')) return;
+      await fetch(`${WORKER_URL}/admin/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + adminPassword
+        },
+        body: JSON.stringify({ id })
+      });
+      login(); // refresh list
+    }
+
+    async function deletePost(id) {
+      if (!confirm('Delete this post?')) return;
+      await fetch(`${WORKER_URL}/admin/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + adminPassword
+        },
+        body: JSON.stringify({ id })
+      });
+      login(); // refresh list
+    }
+  </script>
+</body>
+</html>
