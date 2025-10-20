@@ -1,142 +1,194 @@
+/*
+CLOUDFLARE WORKER FOR GITEE-BASED ADVICE BOARD
+Handles pending/approved posts stored as JSON files on Gitee.
+
+Set these Environment Variables:
+  - ADMIN_PASSWORD  (for admin login)
+  - GITEE_TOKEN     (Personal access token from https://gitee.com/profile/personal_access_tokens)
+  - GITEE_OWNER     (your Gitee username)
+  - GITEE_REPO      (your repository name)
+*/
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    console.log(`[Request] ${request.method} ${url.pathname}`);
+    const path = url.pathname;
+    const method = request.method;
+    console.log(`[Request] ${method} ${path}`);
 
-    // Handle CORS preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: corsHeaders(),
-      });
-    }
+    if (method === "OPTIONS") return new Response(null, { headers: corsHeaders() });
 
     try {
-      if (url.pathname === '/posts' && request.method === 'GET') {
-        return await handleGetPosts(env);
-      } else if (url.pathname === '/posts' && request.method === 'POST') {
-        return await handleCreatePost(request, env);
-      } else {
-        console.log(`[Default] Path not matched: ${url.pathname}`);
-        return new Response(JSON.stringify({ error: 'Not found' }), {
-          status: 404,
-          headers: corsHeaders(),
-        });
-      }
+      // Public routes
+      if (path === "/posts" && method === "GET") return await handleGetApproved(env);
+      if (path === "/posts" && method === "POST") return await handleCreatePending(request, env);
+
+      // Admin routes
+      if (path === "/admin/test" && method === "GET") return testAdmin(env, request);
+      if (path === "/admin/pending" && method === "GET") return await handleGetPending(request, env);
+      if (path === "/admin/approve" && method === "POST") return await handleApprove(request, env);
+      if (path === "/admin/delete" && method === "POST") return await handleDelete(request, env);
+
+      return jsonResponse({ error: "Not found" }, 404);
     } catch (err) {
-      console.error('[Error]', err);
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 500,
-        headers: corsHeaders(),
-      });
+      console.error("[Worker error]", err);
+      return jsonResponse({ error: err.message }, 500);
     }
   },
 };
 
-/* =========================
-   HANDLER: GET /posts
-========================= */
-async function handleGetPosts(env) {
-  const { GITHUB_OWNER, GITHUB_REPO, GITHUB_FOLDER, GITHUB_TOKEN } = env;
+/* ========== AUTH ========== */
+function checkAuth(request, env) {
+  const password = request.headers.get("Authorization")?.replace("Bearer ", "").trim();
+  console.log("[Auth] Provided:", password ? "(hidden)" : "(missing)");
+  if (password !== env.ADMIN_PASSWORD) throw new Error("Unauthorized");
+}
 
-  const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}`;
-  console.log('[GET] Fetching from GitHub:', apiUrl);
+function testAdmin(env, request) {
+  const password = request.headers.get("Authorization")?.replace("Bearer ", "").trim();
+  const ok = password === env.ADMIN_PASSWORD;
+  console.log(`[Test] /admin/test => ${ok ? "OK" : "FAIL"}`);
+  return jsonResponse({ success: ok, message: ok ? "Authorized" : "Unauthorized" }, ok ? 200 : 401);
+}
 
-  const res = await fetch(apiUrl, {
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'cloudflare-worker',
-    },
-  });
+/* ========== PUBLIC GET /posts ========== */
+async function handleGetApproved(env) {
+  const folder = "docs/_posts/approved";
+  const posts = await listFilesFromGitee(env, folder);
+  return jsonResponse(posts);
+}
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GitHub API error: ${res.status} - ${text}`);
-  }
+/* ========== PUBLIC POST /posts ========== */
+async function handleCreatePending(request, env) {
+  const { title, content } = await request.json();
+  if (!title || !content) return jsonResponse({ error: "Missing title/content" }, 400);
 
+  const folder = "docs/_posts/pending";
+  const id = crypto.randomUUID();
+  const post = { id, title, content, date: new Date().toISOString() };
+
+  await uploadFileToGitee(env, `${folder}/${id}.json`, JSON.stringify(post, null, 2), `New post: ${title}`);
+  return jsonResponse({ success: true, post });
+}
+
+/* ========== ADMIN GET /admin/pending ========== */
+async function handleGetPending(request, env) {
+  checkAuth(request, env);
+  const folder = "docs/_posts/pending";
+  const posts = await listFilesFromGitee(env, folder);
+  return jsonResponse(posts);
+}
+
+/* ========== ADMIN POST /admin/approve ========== */
+async function handleApprove(request, env) {
+  checkAuth(request, env);
+  const { id } = await request.json();
+  if (!id) return jsonResponse({ error: "Missing id" }, 400);
+
+  const pendingPath = `docs/_posts/pending/${id}.json`;
+  const approvedPath = `docs/_posts/approved/${id}.json`;
+
+  const { content, sha } = await getGiteeFile(env, pendingPath);
+  await uploadFileToGitee(env, approvedPath, atob(content), `Approve post ${id}`);
+  await deleteGiteeFile(env, pendingPath, sha, `Remove pending post ${id}`);
+
+  return jsonResponse({ success: true });
+}
+
+/* ========== ADMIN POST /admin/delete ========== */
+async function handleDelete(request, env) {
+  checkAuth(request, env);
+  const { id } = await request.json();
+  if (!id) return jsonResponse({ error: "Missing id" }, 400);
+
+  const pendingPath = `docs/_posts/pending/${id}.json`;
+  const { sha } = await getGiteeFile(env, pendingPath);
+  await deleteGiteeFile(env, pendingPath, sha, `Delete pending post ${id}`);
+
+  return jsonResponse({ success: true });
+}
+
+/* ========== GITEE HELPERS ========== */
+async function listFilesFromGitee(env, folder) {
+  const { GITEE_OWNER, GITEE_REPO, GITEE_TOKEN } = env;
+  const url = `https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/contents/${folder}?access_token=${GITEE_TOKEN}`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
   const files = await res.json();
   const posts = [];
 
-  for (const file of files) {
-    if (file.type === 'file' && file.name.endsWith('.json')) {
-      const fileRes = await fetch(file.download_url);
-      const content = await fileRes.text();
-      try {
-        const post = JSON.parse(content);
-        posts.push(post);
-      } catch {
-        console.warn('Invalid JSON in:', file.name);
+  for (const f of files) {
+    if (f.type === "file" && f.name.endsWith(".json")) {
+      const fileRes = await fetch(f.download_url);
+      if (fileRes.ok) {
+        try {
+          const text = await fileRes.text();
+          posts.push(JSON.parse(text));
+        } catch {}
       }
     }
   }
-
-  return new Response(JSON.stringify(posts), {
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
-  });
+  return posts;
 }
 
-/* =========================
-   HANDLER: POST /posts
-========================= */
-async function handleCreatePost(request, env) {
-  const { GITHUB_OWNER, GITHUB_REPO, GITHUB_FOLDER, GITHUB_TOKEN } = env;
-
-  const body = await request.json();
-  if (!body.title || !body.content) {
-    return new Response(JSON.stringify({ error: 'Missing title or content' }), {
-      status: 400,
-      headers: corsHeaders(),
-    });
-  }
-
-  const postId = crypto.randomUUID();
-  const postData = {
-    id: postId,
-    title: body.title,
-    content: body.content,
-    date: new Date().toISOString(),
+async function uploadFileToGitee(env, path, content, message) {
+  const { GITEE_OWNER, GITEE_REPO, GITEE_TOKEN } = env;
+  const url = `https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/contents/${path}`;
+  const body = {
+    access_token: GITEE_TOKEN,
+    content: btoa(unescape(encodeURIComponent(content))),
+    message,
   };
-
-  const fileName = `${postId}.json`;
-  const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${fileName}`;
-
-  console.log('[POST] Creating file at:', apiUrl);
-
-  const githubResponse = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'cloudflare-worker',
-    },
-    body: JSON.stringify({
-      message: `Add new post: ${postData.title}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(postData, null, 2)))),
-    }),
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
-
-  if (!githubResponse.ok) {
-    const errorText = await githubResponse.text();
-    console.error('[GitHub Error]', errorText);
-    return new Response(JSON.stringify({ error: 'GitHub API failed', details: errorText }), {
-      status: 500,
-      headers: corsHeaders(),
-    });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Gitee upload failed: " + err);
   }
-
-  return new Response(JSON.stringify({ success: true, post: postData }), {
-    status: 201,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
-  });
 }
 
-/* =========================
-   HELPERS
-========================= */
+async function getGiteeFile(env, path) {
+  const { GITEE_OWNER, GITEE_REPO, GITEE_TOKEN } = env;
+  const url = `https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/contents/${path}?access_token=${GITEE_TOKEN}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("File not found: " + path);
+  return await res.json();
+}
+
+async function deleteGiteeFile(env, path, sha, message) {
+  const { GITEE_OWNER, GITEE_REPO, GITEE_TOKEN } = env;
+  const url = `https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/contents/${path}`;
+  const body = {
+    access_token: GITEE_TOKEN,
+    sha,
+    message,
+  };
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Gitee delete failed: " + err);
+  }
+}
+
+/* ========== HELPERS ========== */
 function corsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
+}
+
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders() },
+  });
 }
