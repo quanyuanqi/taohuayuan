@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>桃花源</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桃花源 邻里建议板</title>
   <style>
     * {
       margin: 0;
@@ -19,8 +19,6 @@
       min-height: 100vh;
       position: relative;
     }
-
-    /* 页面左上角标题 */
     .page-title {
       position: absolute;
       top: 20px;
@@ -28,10 +26,7 @@
       font-size: 2.0rem;
       font-weight: bold;
       color: #0056b3;
-      text-decoration: none;
     }
-
-    /* 自定义多行标题样式 */
     .title-container {
       text-align: center;
       margin: 60px auto 24px;
@@ -46,16 +41,12 @@
     .title-sub {
       font-size: 1.3rem;
       color: #333;
-      font-weight: normal;
       margin-bottom: 4px;
     }
     .title-tag {
       font-size: 1.0rem;
       color: #666;
-      font-weight: normal;
     }
-
-    /* 表单与建议区域容器 */
     .advice-container {
       display: flex;
       flex-direction: column;
@@ -63,192 +54,132 @@
       max-width: 600px;
       margin: 0 auto 30px;
     }
-
-    /* 提交表单卡片 */
     .advice-form {
       background-color: white;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-
-    .form-title {
-      padding: 16px 20px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #333;
-      background-color: #f5f7fb;
-      border-bottom: 1px solid #eee;
-    }
-
-    .form-body {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       padding: 20px;
     }
-
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 15px;
     }
-
-    .form-group label {
+    label {
       display: block;
-      font-size: 1.0rem;
-      margin-bottom: 6px;
-      color: #333;
+      margin-bottom: 5px;
+      font-weight: 600;
     }
-
-    .form-group input,
-    .form-group textarea {
+    input, textarea {
       width: 100%;
-      padding: 10px 12px;
+      padding: 10px;
+      border-radius: 6px;
       border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 0.98rem;
-      color: #333;
-      background-color: #fff;
-      transition: border 0.2s ease;
+      font-size: 1rem;
     }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #0077cc;
-      box-shadow: 0 0 0 2px rgba(0, 119, 204, 0.1);
+    textarea {
+      resize: vertical;
     }
-
-    .submit-btn {
-      background-color: #0077cc;
+    button {
+      background-color: #0056b3;
       color: white;
+      padding: 10px 20px;
       border: none;
-      padding: 12px 20px;
-      font-size: 1.0rem;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      font-size: 1rem;
     }
-
-    .submit-btn:hover {
-      background-color: #0066b3;
+    button:hover {
+      background-color: #004299;
     }
-
-    /* 最近建议列表卡片 */
-    .recent-advice {
+    .advice-list {
       background-color: white;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-
-    .recent-advice .form-title {
-      color: #333;
-    }
-
-    .recent-list {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       padding: 20px;
-      color: #666;
-      font-size: 0.98rem;
-      min-height: 60px;
-      line-height: 1.7;
     }
-
-    .recent-list.empty {
-      text-align: center;
-      font-style: italic;
-    }
-
-    footer {
-      text-align: center;
-      color: #888;
-      font-size: 0.9rem;
-      margin-top: 30px;
-    }
-
-    /* 移动端适配 */
-    @media (max-width: 480px) {
-      .page-title {
-        font-size: 1.8rem;
-        top: 15px;
-        left: 15px;
-      }
-      .title-main {
-        font-size: 1.6rem;
-      }
-      .title-sub {
-        font-size: 1.2rem;
-      }
-      .title-tag {
-        font-size: 0.95rem;
-      }
-      .form-body,
-      .recent-list {
-        padding: 16px;
-      }
-      .form-group input,
-      .form-group textarea {
-        font-size: 1rem;
-      }
-      .submit-btn {
-        font-size: 1rem;
-        padding: 10px 16px;
-      }
-      .advice-container {
-        gap: 16px;
-      }
-      footer {
-        font-size: 0.85rem;
-      }
-      body {
-        padding: 15px;
-      }
+    .advice-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
     }
   </style>
 </head>
 <body>
 
-  <!-- 左上角“桃花源”标题（带链接） -->
-  <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
-
-  <!-- 页面主标题 -->
   <div class="title-container">
     <div class="title-main">邻里建议板</div>
     <div class="title-sub">分享你的智慧，帮助他人</div>
     <div class="title-tag">共建和谐社区</div>
   </div>
 
-  <!-- 建议提交与查看区域 -->
   <div class="advice-container">
-
-    <!-- 提交建议表单 -->
     <div class="advice-form">
-      <div class="form-title">分享你的建议</div>
-      <div class="form-body">
-        <form action="#" method="post">
-          <div class="form-group">
-            <label for="title">标题：</label>
-            <input type="text" id="title" name="title" placeholder="请输入建议标题" required />
-          </div>
-          <div class="form-group">
-            <label for="content">内容：</label>
-            <textarea id="content" name="content" rows="4" placeholder="请写下你的建议或想法" required></textarea>
-          </div>
-          <button type="submit" class="submit-btn">提交建议</button>
-        </form>
-      </div>
+      <form id="adviceForm">
+        <div class="form-group">
+          <label for="title">标题：</label>
+          <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label for="content">内容：</label>
+          <textarea id="content" name="content" rows="4" required></textarea>
+        </div>
+        <button type="submit">提交建议</button>
+      </form>
     </div>
 
-    <!-- 最近建议列表 -->
-    <div class="recent-advice">
-      <div class="form-title">最近建议</div>
-      <div class="recent-list empty">
-        暂无建议内容。
-      </div>
+    <div class="advice-list" id="adviceList">
+      <h3>最近建议</h3>
+      <div id="postsContainer">暂无建议内容。</div>
     </div>
-
   </div>
 
-  <!-- 页脚 -->
-  <footer>
-    <p>更新时间：2025年10月20日</p>
-  </footer>
+  <script>
+    const CLOUDFLARE_WORKER_URL = "https://tiny-haze-9454.jamic2003.workers.dev";
+
+    // Fetch and display posts
+    async function loadPosts() {
+      const container = document.getElementById("postsContainer");
+      container.innerHTML = "加载中...";
+      try {
+        const res = await fetch(CLOUDFLARE_WORKER_URL + "/posts");
+        const posts = await res.json();
+        if (posts.length === 0) {
+          container.innerHTML = "暂无建议内容。";
+        } else {
+          container.innerHTML = posts.map(
+            post => `<div class="advice-item"><h4>${post.title}</h4><p>${post.content}</p></div>`
+          ).join("");
+        }
+      } catch (err) {
+        container.innerHTML = "加载失败，请稍后再试。";
+      }
+    }
+
+    // Handle form submission
+    document.getElementById("adviceForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value.trim();
+      const content = document.getElementById("content").value.trim();
+      if (!title || !content) return alert("请填写完整内容！");
+      try {
+        const response = await fetch(CLOUDFLARE_WORKER_URL + "/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content })
+        });
+        if (response.ok) {
+          alert("提交成功！");
+          document.getElementById("adviceForm").reset();
+          loadPosts();
+        } else {
+          alert("提交失败，请稍后再试！");
+        }
+      } catch (error) {
+        alert("发生错误，请检查网络连接。");
+      }
+    });
+
+    // Initialize content
+    window.onload = loadPosts;
+  </script>
 
 </body>
 </html>
