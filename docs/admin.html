@@ -2,94 +2,229 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Pending Advice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Advice Board</title>
   <style>
-    body { font-family: Arial; margin: 20px; background: #f9fafc; color: #333; }
-    h1 { text-align: center; }
-    #login-section, #admin-section { max-width: 800px; margin: 0 auto; }
-    input[type=password] { width: 100%; padding: 10px; margin: 10px 0; }
-    button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
-    .post { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
-    .post-title { font-weight: bold; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e5e9;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #5a67d8;
+    }
+    .error {
+      color: #c53030;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    .success {
+      color: #2f855a;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    .post {
+      border-bottom: 1px solid #ddd;
+      padding: 15px 0;
+    }
+    .post-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .post-content {
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+    .actions {
+      margin-top: 10px;
+    }
+    .actions button {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Admin Panel</h1>
+  <div class="container">
+    <h1>Admin Panel</h1>
 
-  <div id="login-section">
-    <h3>Enter Admin Password</h3>
-    <input type="password" id="admin-password" placeholder="Password">
-    <button onclick="login()">Login</button>
-    <div id="login-error" style="color:red;"></div>
-  </div>
+    <div id="login-section">
+      <p>Enter your admin password:</p>
+      <input type="password" id="admin-password" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <div id="login-message"></div>
+    </div>
 
-  <div id="admin-section" style="display:none;">
-    <h3>Pending Posts</h3>
-    <div id="posts"></div>
+    <div id="admin-section" style="display:none;">
+      <h2>Pending Posts</h2>
+      <div id="pending-posts"></div>
+    </div>
   </div>
 
   <script>
-    const WORKER_URL = 'https://tiny-haze-9454.jamic2003.workers.dev/';
+    const WORKER_URL = 'https://tiny-haze-9454.jamic2003.workers.dev';
     let adminPassword = '';
+
+    // Test login first via /admin/test endpoint
+    async function testLogin(password) {
+      try {
+        const res = await fetch(`${WORKER_URL}/admin/test`, {
+          headers: { Authorization: 'Bearer ' + password }
+        });
+        const data = await res.json();
+        console.log('[Login Test] Response:', data);
+        return data;
+      } catch (err) {
+        console.error('[Login Test Error]', err);
+        return { success: false, message: err.message };
+      }
+    }
 
     async function login() {
       adminPassword = document.getElementById('admin-password').value.trim();
       if (!adminPassword) return;
-      document.getElementById('login-error').textContent = '';
+
+      const msgEl = document.getElementById('login-message');
+      msgEl.textContent = '';
+      msgEl.className = '';
+
+      console.log('[Login] Testing password...');
+      const result = await testLogin(adminPassword);
+
+      if (!result.success) {
+        msgEl.textContent = '❌ ' + (result.message || 'Login failed.');
+        msgEl.className = 'error';
+        console.warn('[Login] Password test failed.');
+        return;
+      }
+
+      msgEl.textContent = '✅ Password OK!';
+      msgEl.className = 'success';
+      console.log('[Login] Password verified successfully, loading pending posts...');
+
       try {
         const res = await fetch(`${WORKER_URL}/admin/pending`, {
           headers: { Authorization: 'Bearer ' + adminPassword }
         });
+
         if (!res.ok) throw new Error('Invalid password');
         const posts = await res.json();
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('admin-section').style.display = 'block';
         renderPosts(posts);
       } catch (e) {
-        document.getElementById('login-error').textContent = 'Login failed.';
+        console.error('[Login Error]', e);
+        msgEl.textContent = '❌ Login failed after verification.';
+        msgEl.className = 'error';
       }
     }
 
     function renderPosts(posts) {
-      const container = document.getElementById('posts');
+      const container = document.getElementById('pending-posts');
       if (!posts.length) {
         container.innerHTML = '<p>No pending posts.</p>';
         return;
       }
+
       container.innerHTML = posts.map(p => `
         <div class="post">
-          <div class="post-title">${p.title}</div>
-          <div class="post-content">${p.content}</div>
-          <button onclick="approve('${p.id}')">Approve</button>
-          <button onclick="deletePost('${p.id}')">Delete</button>
+          <div class="post-title">${escapeHtml(p.title)}</div>
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="actions">
+            <button onclick="approve('${p.id}')">Approve</button>
+            <button onclick="reject('${p.id}')">Delete</button>
+          </div>
         </div>
       `).join('');
     }
 
     async function approve(id) {
       if (!confirm('Approve this post?')) return;
-      await fetch(`${WORKER_URL}/admin/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + adminPassword
-        },
-        body: JSON.stringify({ id })
-      });
-      login(); // refresh list
+      try {
+        const res = await fetch(`${WORKER_URL}/admin/approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + adminPassword
+          },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        console.log('[Approve]', data);
+        if (data.success) {
+          alert('Post approved!');
+          login();
+        } else {
+          alert('Error approving post.');
+        }
+      } catch (err) {
+        console.error('[Approve Error]', err);
+        alert('Error approving post.');
+      }
     }
 
-    async function deletePost(id) {
+    async function reject(id) {
       if (!confirm('Delete this post?')) return;
-      await fetch(`${WORKER_URL}/admin/delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + adminPassword
-        },
-        body: JSON.stringify({ id })
-      });
-      login(); // refresh list
+      try {
+        const res = await fetch(`${WORKER_URL}/admin/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + adminPassword
+          },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        console.log('[Delete]', data);
+        if (data.success) {
+          alert('Post deleted.');
+          login();
+        } else {
+          alert('Error deleting post.');
+        }
+      } catch (err) {
+        console.error('[Delete Error]', err);
+        alert('Error deleting post.');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
   </script>
 </body>
