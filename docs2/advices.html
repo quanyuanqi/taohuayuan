@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Share Your Advice</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: #f7f7f7;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    input, textarea, button {
+      width: 100%;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    input::placeholder {
+      color: #bbb;
+      background: linear-gradient(transparent, transparent), #f0f0f0;
+      background-clip: text;
+    }
+    textarea::placeholder {
+      color: #bbb;
+    }
+    button {
+      background: #0078f0;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #005ec0;
+    }
+    .post {
+      background: white;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .post h3 {
+      margin: 0 0 0.5rem 0;
+    }
+    .post p {
+      white-space: pre-line;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #0078f0;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <a href="/index.html" class="back-link">← Back to Home</a>
+  <h1>Share Your Advice</h1>
+  <form id="adviceForm">
+    <label for="title">Title</label>
+    <input
+      id="title"
+      name="title"
+      type="text"
+      maxlength="100"
+      placeholder="Enter title (max 100 characters)"
+      required
+    />
+
+    <label for="content">Your Advice</label>
+    <textarea
+      id="content"
+      name="content"
+      rows="6"
+      maxlength="2000"
+      placeholder="Write your advice (max 2000 characters)"
+      required
+    ></textarea>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <h2>Published Advices</h2>
+  <div id="advicesList">Loading...</div>
+
+  <script>
+    // --- Submit new advice ---
+    document.getElementById("adviceForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value.trim();
+      const content = document.getElementById("content").value.trim();
+
+      if (!title || !content) {
+        alert("Please fill out both fields.");
+        return;
+      }
+
+      const res = await fetch("/api/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (res.ok) {
+        alert("Thanks! Your advice will be reviewed before it goes public.");
+        e.target.reset();
+      } else {
+        const text = await res.text();
+        alert("Error: " + text);
+      }
+    });
+
+    // --- Load published posts ---
+    async function loadAdvices() {
+      try {
+        const res = await fetch("/api/list");
+        const advices = await res.json();
+        const listEl = document.getElementById("advicesList");
+
+        if (!advices.length) {
+          listEl.textContent = "No advices yet. Be the first!";
+          return;
+        }
+
+        listEl.innerHTML = advices
+          .map(a => `
+            <div class="post">
+              <h3>${a.title}</h3>
+              <p>${a.content}</p>
+            </div>
+          `)
+          .join("");
+      } catch (err) {
+        document.getElementById("advicesList").textContent = "Failed to load posts.";
+        console.error(err);
+      }
+    }
+
+    loadAdvices();
+  </script>
+</body>
+</html>
