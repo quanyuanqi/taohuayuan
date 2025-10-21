@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Submit Your Advice</title>
+  <title>桃花源</title>
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -70,14 +70,14 @@
   </style>
 </head>
 <body>
-  <h1>Share Your Advice</h1>
+  <h1>小区建言献策</h1>
   <form id="adviceForm">
-    <input type="text" id="title" name="title" placeholder="Enter title (max 100 chars)" maxlength="100" required />
+    <input type="text" id="title" name="title" placeholder="标题 (30字以内)" maxlength="100" required />
     <div class="textarea-container">
-      <span class="hint">Write your advice here (max 1000 characters)</span>
+      <span class="hint">内容（2000字以内）</span>
       <textarea id="content" name="content" rows="5" maxlength="1000" required></textarea>
     </div>
-    <button type="submit">Submit</button>
+    <button type="submit">提交</button>
     <p id="msg"></p>
   </form>
 
@@ -90,12 +90,12 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      msg.textContent = "Submitting...";
+      msg.textContent = "正在提交...";
       const title = form.title.value.trim();
       const content = form.content.value.trim();
 
       if (!title || !content) {
-        msg.textContent = "Please fill in both fields.";
+        msg.textContent = "请填写完整内容";
         return;
       }
 
@@ -108,7 +108,7 @@
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Unknown error");
-        msg.textContent = "Submitted successfully! Awaiting approval.";
+        msg.textContent = "提交成功！请等待网站处理后显示，一般30分钟左右。";
         form.reset();
       } catch (err) {
         console.error("Submit error:", err);
@@ -117,12 +117,12 @@
     });
 
     async function loadApproved() {
-      postsDiv.innerHTML = "<p>Loading posts...</p>";
+      postsDiv.innerHTML = "<p>正在努力展示内容中...</p>";
       try {
         const res = await fetch("/api/list");
         const posts = await res.json();
         if (!Array.isArray(posts) || posts.length === 0) {
-          postsDiv.innerHTML = "<p>No approved posts yet.</p>";
+          postsDiv.innerHTML = "<p>暂时没有内容</p>";
           return;
         }
 
@@ -138,7 +138,7 @@
         `).join("");
       } catch (err) {
         console.error("Load error:", err);
-        postsDiv.innerHTML = "<p>Error loading posts.</p>";
+        postsDiv.innerHTML = "<p>展示内容出现错误</p>";
       }
     }
 
