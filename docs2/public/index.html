@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>桃花源</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.8;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 页面左上角标题 - 无下划线 */
+    .page-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 2.0rem;
+      font-weight: bold;
+      color: #0056b3;
+      text-decoration: none; /* 去掉下划线 */
+    }
+
+    /* 按钮容器 */
+    .button-container {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    /* 按钮通用样式 */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 18px 20px;
+      font-size: 1.3rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      outline: none;
+      color: #fff;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+      transition: all 0.2s ease;
+      margin-bottom: 20px;
+    }
+
+    .btn:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+    }
+
+    .btn:active {
+      background-color: #004494;
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 灰色按钮（禁用状态） */
+    .btn-disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    .btn-disabled:hover {
+      background-color: #5a6268;
+      transform: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    }
+
+    /* 注释文字 */
+    .note {
+      display: block;
+      font-size: 1.0rem;
+      color: #66aaff;
+      margin-top: 6px;
+      font-weight: normal;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+      .page-title {
+        font-size: 1.8rem;
+        top: 15px;
+        left: 15px;
+      }
+      .btn {
+        font-size: 1.2rem;
+        padding: 16px 16px;
+      }
+      .note {
+        font-size: 0.95rem;
+      }
+      body {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 页面左上角标题，无下划线 -->
+  <a href="https://www.taohuayuan.com" target="_blank" class="page-title">桃花源</a>
+
+  <!-- 按钮容器 -->
+  <div class="button-container">
+    <a href="laws.html" class="btn">物业法律法规</a>
+    <a href="groups.html" class="btn">小区闲置物品群</a>
+    <a href="news.html" class="btn">小区新闻报道</a>
+    <a href="advices.html" class="btn">小区建言献策</a>
+    <div class="btn btn-disabled">
+      小区活动列表
+      <span class="note">功能稍后发布</span>
+    </div>
+
+    <div class="btn btn-disabled">
+      小区历史文化
+      <span class="note">功能稍后发布</span>
+    </div>
+
+  </div>
+
+</body>
+</html>
