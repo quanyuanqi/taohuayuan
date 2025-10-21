@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Admin Dashboard</h1>
+
+<input id="password" type="password" placeholder="Enter admin password">
+<button onclick="loadAdminPosts()">Load Posts</button>
+
+<ul id="adminList"></ul>
+
+<script>
+async function loadAdminPosts() {
+  const password = document.getElementById('password').value;
+  const res = await fetch(`/api/admin-list?password=${encodeURIComponent(password)}`);
+  if (!res.ok) { alert(await res.text()); return; }
+  const posts = await res.json();
+  const list = document.getElementById('adminList');
+  list.innerHTML = '';
+
+  for (const post of posts) {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${post.title}</strong> 
+      ${post.approved ? '(✅ Approved)' : '(⏳ Pending)'}
+      <button onclick="approve('${post.id}')">Approve</button>
+      <button onclick="del('${post.id}')">Delete</button>`;
+    list.appendChild(li);
+  }
+}
+
+async function approve(id) {
+  const password = document.getElementById('password').value;
+  const res = await fetch('/api/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, password })
+  });
+  alert(await res.text());
+  loadAdminPosts();
+}
+
+async function del(id) {
+  const password = document.getElementById('password').value;
+  const res = await fetch('/api/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, password })
+  });
+  alert(await res.text());
+  loadAdminPosts();
+}
+</script>
+</body>
+</html>
