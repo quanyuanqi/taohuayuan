@@ -1,58 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Panel</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Admin – Manage Posts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f6f7f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #login {
+      max-width: 400px;
+      margin: 100px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    #adminPanel {
+      display: none;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .post {
+      background: #fff;
+      margin-bottom: 15px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .post h3 { margin: 0 0 5px 0; }
+    .post small { color: #777; }
+    button {
+      margin-right: 10px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .approve { background: #28a745; color: white; }
+    .delete { background: #dc3545; color: white; }
+  </style>
 </head>
 <body>
-<h1>Admin Dashboard</h1>
+  <h1>Admin Panel</h1>
 
-<input id="password" type="password" placeholder="Enter admin password">
-<button onclick="loadAdminPosts()">Load Posts</button>
+  <!-- password login -->
+  <div id="login">
+    <p>Please enter admin password:</p>
+    <input type="password" id="adminPass" placeholder="Password" />
+    <button id="loginBtn">Enter</button>
+    <p id="loginMsg" style="color:red;"></p>
+  </div>
 
-<ul id="adminList"></ul>
+  <!-- admin panel -->
+  <div id="adminPanel">
+    <h2>Pending / Approved Posts</h2>
+    <div id="posts"></div>
+  </div>
 
-<script>
-async function loadAdminPosts() {
-  const password = document.getElementById('password').value;
-  const res = await fetch(`/api/admin-list?password=${encodeURIComponent(password)}`);
-  if (!res.ok) { alert(await res.text()); return; }
-  const posts = await res.json();
-  const list = document.getElementById('adminList');
-  list.innerHTML = '';
+  <script>
+    const ADMIN_PASSWORD = "YOUR_ADMIN_PASSWORD"; // 🔒 change this before deploy!
 
-  for (const post of posts) {
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${post.title}</strong> 
-      ${post.approved ? '(✅ Approved)' : '(⏳ Pending)'}
-      <button onclick="approve('${post.id}')">Approve</button>
-      <button onclick="del('${post.id}')">Delete</button>`;
-    list.appendChild(li);
-  }
-}
+    const loginDiv = document.getElementById("login");
+    const adminPanel = document.getElementById("adminPanel");
+    const postsDiv = document.getElementById("posts");
+    const msg = document.getElementById("loginMsg");
 
-async function approve(id) {
-  const password = document.getElementById('password').value;
-  const res = await fetch('/api/approve', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, password })
-  });
-  alert(await res.text());
-  loadAdminPosts();
-}
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const pass = document.getElementById("adminPass").value.trim();
+      if (pass === ADMIN_PASSWORD) {
+        loginDiv.style.display = "none";
+        adminPanel.style.display = "block";
+        loadPosts();
+      } else {
+        msg.textContent = "Incorrect password.";
+      }
+    });
 
-async function del(id) {
-  const password = document.getElementById('password').value;
-  const res = await fetch('/api/delete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, password })
-  });
-  alert(await res.text());
-  loadAdminPosts();
-}
-</script>
+    async function loadPosts() {
+      postsDiv.innerHTML = "<p>Loading posts...</p>";
+      try {
+        const res = await fetch("/api/list-all");
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          postsDiv.innerHTML = "<p>No posts found.</p>";
+          return;
+        }
+
+        // Sort newest first
+        const sorted = data.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        postsDiv.innerHTML = sorted.map(p => `
+          <div class="post">
+            <h3>${escapeHtml(p.title)}</h3>
+            <small>${new Date(p.date).toLocaleString()} — ${p.status}</small>
+            <p>${escapeHtml(p.content)}</p>
+            <button class="approve" onclick="approvePost('${p.id}')">Approve</button>
+            <button class="delete" onclick="deletePost('${p.id}')">Delete</button>
+          </div>
+        `).join("");
+      } catch (err) {
+        postsDiv.innerHTML = "<p>Error loading posts.</p>";
+        console.error(err);
+      }
+    }
+
+    async function approvePost(id) {
+      if (!confirm("Approve this post?")) return;
+      try {
+        const res = await fetch("/api/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        if (!res.ok) throw new Error("Approval failed");
+        alert("Approved successfully.");
+        loadPosts();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function deletePost(id) {
+      if (!confirm("Delete this post?")) return;
+      try {
+        const res = await fetch("/api/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        if (!res.ok) throw new Error("Delete failed");
+        alert("Deleted successfully.");
+        loadPosts();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+  </script>
 </body>
 </html>
