@@ -1,14 +1,18 @@
-export async function onRequestPost(context) {
-  const { env, request } = context;
-  const { id, password } = await request.json();
+export async function onRequestPost({ request, env }) {
+  try {
+    const { id } = await request.json();
+    if (!id) return new Response("Missing id", { status: 400 });
 
-  if (password !== env.ADMIN_PASSWORD)
-    return new Response('Unauthorized', { status: 401 });
+    const data = await env.ADVICES_KV.get(id);
+    if (!data) return new Response("Post not found", { status: 404 });
 
-  const post = await env.ADVICES_KV.get(id, 'json');
-  if (!post) return new Response('Not found', { status: 404 });
+    const post = JSON.parse(data);
+    post.status = "approved";
+    post.approved = true;
 
-  post.approved = true;
-  await env.ADVICES_KV.put(id, JSON.stringify(post));
-  return new Response('Approved', { status: 200 });
+    await env.ADVICES_KV.put(id, JSON.stringify(post));
+    return new Response(JSON.stringify({ ok: true }));
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
 }
