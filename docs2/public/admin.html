@@ -2,154 +2,209 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin – Manage Posts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Advice Board</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
-      background: #f6f7f9;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      background-color: #f8f9fa;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
+      margin-bottom: 20px;
+      color: #333;
     }
-    #login {
-      max-width: 400px;
-      margin: 100px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e5e9;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-bottom: 10px;
     }
-    #adminPanel {
-      display: none;
-      max-width: 800px;
-      margin: 0 auto;
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #5a67d8;
+    }
+    .error {
+      color: #c53030;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    .success {
+      color: #2f855a;
+      margin-top: 10px;
+      font-weight: 500;
     }
     .post {
-      background: #fff;
-      margin-bottom: 15px;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-bottom: 1px solid #ddd;
+      padding: 15px 0;
     }
-    .post h3 { margin: 0 0 5px 0; }
-    .post small { color: #777; }
-    button {
+    .post-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .post-content {
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+    .actions {
+      margin-top: 10px;
+    }
+    .actions button {
       margin-right: 10px;
-      padding: 6px 12px;
-      font-size: 0.9rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
     }
-    .approve { background: #28a745; color: white; }
-    .delete { background: #dc3545; color: white; }
   </style>
 </head>
 <body>
-  <h1>Admin Panel</h1>
+  <div class="container">
+    <h1>Admin Panel</h1>
 
-  <!-- password login -->
-  <div id="login">
-    <p>Please enter admin password:</p>
-    <input type="password" id="adminPass" placeholder="Password" />
-    <button id="loginBtn">Enter</button>
-    <p id="loginMsg" style="color:red;"></p>
-  </div>
+    <div id="login-section">
+      <p>Enter your admin password:</p>
+      <input type="password" id="admin-password" placeholder="Password">
+      <button id="login-btn">Login</button>
+      <div id="login-message"></div>
+    </div>
 
-  <!-- admin panel -->
-  <div id="adminPanel">
-    <h2>Pending / Approved Posts</h2>
-    <div id="posts"></div>
+    <div id="admin-section" style="display:none;">
+      <h2>Pending Posts</h2>
+      <div id="pending-posts"></div>
+    </div>
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "YOUR_ADMIN_PASSWORD"; // 🔒 change this before deploy!
+    const loginSection = document.getElementById('login-section');
+    const adminSection = document.getElementById('admin-section');
+    const loginMsg = document.getElementById('login-message');
+    const pendingPostsDiv = document.getElementById('pending-posts');
 
-    const loginDiv = document.getElementById("login");
-    const adminPanel = document.getElementById("adminPanel");
-    const postsDiv = document.getElementById("posts");
-    const msg = document.getElementById("loginMsg");
+    let adminPassword = '';
 
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      const pass = document.getElementById("adminPass").value.trim();
-      if (pass === ADMIN_PASSWORD) {
-        loginDiv.style.display = "none";
-        adminPanel.style.display = "block";
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      adminPassword = document.getElementById('admin-password').value.trim();
+      if (!adminPassword) return;
+
+      loginMsg.textContent = 'Checking password...';
+      loginMsg.className = '';
+
+      try {
+        // 🔹 Contact your endpoint to verify password
+        const res = await fetch('/api/check-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Login failed');
+
+        loginMsg.textContent = '✅ Password OK!';
+        loginMsg.className = 'success';
+
+        loginSection.style.display = 'none';
+        adminSection.style.display = 'block';
         loadPosts();
-      } else {
-        msg.textContent = "Incorrect password.";
+      } catch (err) {
+        loginMsg.textContent = '❌ ' + err.message;
+        loginMsg.className = 'error';
       }
     });
 
     async function loadPosts() {
-      postsDiv.innerHTML = "<p>Loading posts...</p>";
+      pendingPostsDiv.innerHTML = 'Loading posts...';
       try {
-        const res = await fetch("/api/list-all");
-        const data = await res.json();
+        const res = await fetch('/api/list-all');
+        const posts = await res.json();
 
-        if (!Array.isArray(data) || data.length === 0) {
-          postsDiv.innerHTML = "<p>No posts found.</p>";
+        if (!Array.isArray(posts) || posts.length === 0) {
+          pendingPostsDiv.innerHTML = '<p>No pending posts.</p>';
           return;
         }
 
-        // Sort newest first
-        const sorted = data.sort((a,b) => new Date(b.date) - new Date(a.date));
+        // 🔹 Sort posts by date (latest first)
+        const sortedPosts = posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        postsDiv.innerHTML = sorted.map(p => `
+        pendingPostsDiv.innerHTML = sortedPosts.map(post => `
           <div class="post">
-            <h3>${escapeHtml(p.title)}</h3>
-            <small>${new Date(p.date).toLocaleString()} — ${p.status}</small>
-            <p>${escapeHtml(p.content)}</p>
-            <button class="approve" onclick="approvePost('${p.id}')">Approve</button>
-            <button class="delete" onclick="deletePost('${p.id}')">Delete</button>
+            <div class="post-title">${escapeHtml(post.title)}</div>
+            <div class="post-content">${escapeHtml(post.content)}</div>
+            <div class="actions">
+              <button onclick="approvePost('${post.id}')">Approve</button>
+              <button onclick="deletePost('${post.id}')">Delete</button>
+            </div>
           </div>
-        `).join("");
+        `).join('');
       } catch (err) {
-        postsDiv.innerHTML = "<p>Error loading posts.</p>";
-        console.error(err);
+        pendingPostsDiv.innerHTML = '<p>Error loading posts.</p>';
       }
     }
 
     async function approvePost(id) {
-      if (!confirm("Approve this post?")) return;
+      if (!confirm('Approve this post?')) return;
       try {
-        const res = await fetch("/api/approve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminPassword
+          },
           body: JSON.stringify({ id })
         });
-        if (!res.ok) throw new Error("Approval failed");
-        alert("Approved successfully.");
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to approve');
+        alert('Post approved!');
         loadPosts();
       } catch (err) {
-        alert("Error: " + err.message);
+        alert('Error: ' + err.message);
       }
     }
 
     async function deletePost(id) {
-      if (!confirm("Delete this post?")) return;
+      if (!confirm('Delete this post?')) return;
       try {
-        const res = await fetch("/api/delete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminPassword
+          },
           body: JSON.stringify({ id })
         });
-        if (!res.ok) throw new Error("Delete failed");
-        alert("Deleted successfully.");
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to delete');
+        alert('Post deleted!');
         loadPosts();
       } catch (err) {
-        alert("Error: " + err.message);
+        alert('Error: ' + err.message);
       }
     }
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
   </script>
 </body>
