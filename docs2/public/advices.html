@@ -1,226 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Community Advices</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Your Advice</title>
   <style>
     body {
-      font-family: system-ui, Arial, sans-serif;
-      background: #f7f7f9;
-      color: #222;
-      margin: 0;
-      padding: 20px;
-      max-width: 800px;
-      margin-inline: auto;
+      font-family: system-ui, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+      color: #333;
     }
-
     h1 {
       text-align: center;
-      color: #333;
-      margin-bottom: 20px;
     }
-
     form {
-      background: white;
+      max-width: 600px;
+      margin: 0 auto 40px;
+      background: #fff;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 30px;
     }
-
-    input[type="text"], textarea {
+    input, textarea, button {
       width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
-      padding: 10px;
-      font-size: 15px;
-      margin-top: 8px;
-      margin-bottom: 12px;
-      background: #fafafa;
-      transition: border 0.2s ease;
     }
-
-    input[type="text"]:focus, textarea:focus {
-      border-color: #0099ff;
-      background: #fff;
-      outline: none;
-    }
-
-    textarea {
-      min-height: 150px;
-      resize: vertical;
-    }
-
     button {
-      background: #0099ff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
-      font-size: 16px;
+      background: #0078f2;
+      color: #fff;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s ease;
     }
-
     button:hover {
-      background: #0077cc;
+      background: #005ec2;
     }
-
-    .hint {
-      font-size: 13px;
-      color: #666;
-      margin-top: -8px;
-      margin-bottom: 12px;
+    .posts {
+      max-width: 700px;
+      margin: 0 auto;
     }
-
     .post {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      padding: 15px;
+      background: #fff;
+      padding: 15px 20px;
       margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
-
     .post h3 {
-      margin: 0 0 10px;
-      color: #222;
+      margin-top: 0;
     }
-
     .post small {
       color: #888;
-      font-size: 12px;
     }
-
-    #posts {
-      margin-top: 10px;
+    .hint {
+      position: absolute;
+      color: #bbb;
+      font-size: 0.9rem;
+      pointer-events: none;
+      top: 12px;
+      left: 14px;
+    }
+    .textarea-container {
+      position: relative;
     }
   </style>
 </head>
 <body>
   <h1>Share Your Advice</h1>
-
   <form id="adviceForm">
-    <label for="title">Title</label>
-    <input type="text" id="title" maxlength="200" placeholder="Enter title (max 200 chars)" />
-
-    <label for="content">Content</label>
-    <textarea id="content" maxlength="5000" placeholder="Write your advice here (max 5000 chars)..."></textarea>
-    <div class="hint">Tips: Your post will be reviewed before public display.</div>
-
+    <input type="text" id="title" name="title" placeholder="Enter title (max 100 chars)" maxlength="100" required />
+    <div class="textarea-container">
+      <span class="hint">Write your advice here (max 1000 characters)</span>
+      <textarea id="content" name="content" rows="5" maxlength="1000" required></textarea>
+    </div>
     <button type="submit">Submit</button>
+    <p id="msg"></p>
   </form>
 
-  <h2>Approved Advices</h2>
-  <div id="posts">Loading approved posts...</div>
+  <div class="posts" id="approvedPosts"></div>
 
   <script>
-    const API_BASE = "/api";
-    const MAX_TITLE_LEN = 200;
-    const MAX_CONTENT_LEN = 5000;
-
-    const titleInput = document.getElementById("title");
-    const contentInput = document.getElementById("content");
-    const postsContainer = document.getElementById("posts");
     const form = document.getElementById("adviceForm");
+    const msg = document.getElementById("msg");
+    const postsDiv = document.getElementById("approvedPosts");
 
-    // --- 1. Load posts ---
-    async function loadPosts() {
-      try {
-        console.log("Loading posts from", `${API_BASE}/list`);
-        const res = await fetch(`${API_BASE}/list`);
-        const text = await res.text();
-        console.log("Raw response:", text);
-
-        let posts;
-        try {
-          posts = JSON.parse(text);
-        } catch (err) {
-          console.error("Invalid JSON:", err);
-          postsContainer.innerHTML = `<p style='color:red'>Server returned invalid data.</p>`;
-          return;
-        }
-
-        if (!Array.isArray(posts) || posts.length === 0) {
-          postsContainer.innerHTML = "<p>No approved posts yet.</p>";
-          return;
-        }
-
-        postsContainer.innerHTML = posts.map(p => {
-          const safeTitle = (p.title || "(no title)").replace(/[<>]/g, "");
-          const safeContent = (p.content || "(no content)").replace(/[<>]/g, "");
-          const date = p.date ? new Date(p.date).toLocaleString() : "";
-          return `
-            <div class="post">
-              <h3>${safeTitle}</h3>
-              <p>${safeContent}</p>
-              <small>${date}</small>
-            </div>
-          `;
-        }).join("");
-      } catch (err) {
-        console.error("Error loading posts:", err);
-        postsContainer.innerHTML = `<p style='color:red'>Error loading posts: ${err.message}</p>`;
-      }
-    }
-
-    // --- 2. Submit new post ---
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const title = titleInput.value.trim();
-      const content = contentInput.value.trim();
+      msg.textContent = "Submitting...";
+      const title = form.title.value.trim();
+      const content = form.content.value.trim();
 
       if (!title || !content) {
-        alert("Please enter both title and content.");
+        msg.textContent = "Please fill in both fields.";
         return;
       }
-      if (title.length > MAX_TITLE_LEN) {
-        alert(`Title too long (max ${MAX_TITLE_LEN} chars).`);
-        return;
-      }
-      if (content.length > MAX_CONTENT_LEN) {
-        alert(`Content too long (max ${MAX_CONTENT_LEN} chars).`);
-        return;
-      }
-
-      const data = { title, content };
-      console.log("Submitting post:", data);
 
       try {
-        const res = await fetch(`${API_BASE}/post`, {
+        const res = await fetch("/api/post", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
+          body: JSON.stringify({ title, content }),
         });
 
-        const text = await res.text();
-        console.log("Response text:", text);
-
-        let json;
-        try {
-          json = JSON.parse(text);
-        } catch (err) {
-          console.error("Invalid JSON response:", err);
-          alert("Server returned invalid response.");
-          return;
-        }
-
-        if (json.error) {
-          alert("Error: " + json.error);
-          return;
-        }
-
-        alert("Your advice was submitted successfully and will appear after approval.");
-        titleInput.value = "";
-        contentInput.value = "";
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+        msg.textContent = "Submitted successfully! Awaiting approval.";
+        form.reset();
       } catch (err) {
         console.error("Submit error:", err);
-        alert("Error submitting post: " + err.message);
+        msg.textContent = "Error: " + err.message;
       }
     });
 
-    // --- 3. Load posts on page ready ---
-    window.addEventListener("DOMContentLoaded", loadPosts);
+    async function loadApproved() {
+      postsDiv.innerHTML = "<p>Loading posts...</p>";
+      try {
+        const res = await fetch("/api/list");
+        const posts = await res.json();
+        if (!Array.isArray(posts) || posts.length === 0) {
+          postsDiv.innerHTML = "<p>No approved posts yet.</p>";
+          return;
+        }
+
+        // ✅ Sort by date descending & show only latest 20
+        const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+
+        postsDiv.innerHTML = sorted.map(p => `
+          <div class="post">
+            <h3>${escapeHtml(p.title)}</h3>
+            <small>${new Date(p.date).toLocaleString()}</small>
+            <p>${escapeHtml(p.content).slice(0, 100)}${p.content.length > 100 ? "..." : ""}</p>
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error("Load error:", err);
+        postsDiv.innerHTML = "<p>Error loading posts.</p>";
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    loadApproved();
   </script>
 </body>
 </html>
