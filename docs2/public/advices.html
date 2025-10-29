@@ -13,7 +13,7 @@
       position: relative;
     }
 
-    /* 修改1：将桃花源链接移至左上角 */
+    /* 左上角固定链接 */
     .page-title {
       position: absolute;
       top: 20px;
@@ -25,15 +25,14 @@
       z-index: 10;
     }
 
-    /* 修改2：调整主标题位置 */
+    /* 主标题样式 */
     h1 {
       text-align: center;
-      margin-top: 120px; /* 增加上边距 */
+      margin-top: 120px;
       padding-top: 20px;
-      border-top: 1px solid #eee; /* 添加顶部边框作为视觉分隔 */
+      border-top: 1px solid #eee;
     }
     
-    /* 其余样式保持不变 */
     form {
       max-width: 600px;
       margin: 0 auto 40px;
@@ -42,25 +41,173 @@
       border-radius: 12px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    /* ...其他样式保持原样... */
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background: #0078f2;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005ec2;
+    }
+    .posts {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .post {
+      background: #fff;
+      padding: 15px 20px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      cursor: pointer;
+    }
+    .post:hover {
+      background-color: #f9f9f9;
+    }
+    .post h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #0078f2;
+    }
+    .post small {
+      color: #888;
+    }
+    .post-content {
+      max-height: 140px;
+      overflow-y: auto;
+      transition: max-height 0.3s ease;
+    }
+    .post-content.full {
+      max-height: none;
+    }
+    .hint {
+      position: absolute;
+      color: #bbb;
+      font-size: 0.9rem;
+      pointer-events: none;
+      top: 12px;
+      left: 14px;
+    }
+    .textarea-container {
+      position: relative;
+    }
   </style>
 </head>
 <body>
-  <!-- 修改3：保持左上角位置 -->
+  <!-- 左上角“桃花源”标题（带链接） -->
   <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
 
-  <!-- 修改4：主标题下移 -->
   <h1>小区建言献策</h1>
-  
-  <!-- 其余HTML结构保持不变 -->
   <form id="adviceForm">
-    <!-- ...表单内容... -->
+    <input type="text" id="title" name="title" placeholder="标题 (30字以内)" maxlength="100" required />
+    <div class="textarea-container">
+      <span class="hint">内容（2000字以内）</span>
+      <textarea id="content" name="content" rows="5" maxlength="1000" required></textarea>
+    </div>
+    <button type="submit">提交</button>
+    <p id="msg"></p>
   </form>
-  
+
   <div class="posts" id="approvedPosts"></div>
-  
+
   <script>
-    // JavaScript代码保持原样
+    const form = document.getElementById("adviceForm");
+    const msg = document.getElementById("msg");
+    const postsDiv = document.getElementById("approvedPosts");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "正在提交...";
+      const title = form.title.value.trim();
+      const content = form.content.value.trim();
+
+      if (!title || !content) {
+        msg.textContent = "请填写完整内容";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+        msg.textContent = "提交成功！请等待网站处理后显示，一般30分钟左右。";
+        form.reset();
+      } catch (err) {
+        console.error("Submit error:", err);
+        msg.textContent = "Error: " + err.message;
+      }
+    });
+
+    async function loadApproved() {
+      postsDiv.innerHTML = "<p>正在努力展示内容中...</p>";
+      try {
+        const res = await fetch("/api/list");
+        const posts = await res.json();
+        if (!Array.isArray(posts) || posts.length === 0) {
+          postsDiv.innerHTML = "<p>暂时没有内容</p>";
+          return;
+        }
+
+        const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+
+        postsDiv.innerHTML = sorted.map(p => {
+          const fullContent = escapeHtml(p.content);
+          const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : "");
+          const id = p.id || `post-${Date.now()}-${Math.random()}`;
+          return `
+            <div class="post" onclick="togglePostContent('${id}')">
+              <h3>${escapeHtml(p.title)}</h3>
+              <small>${new Date(p.date).toLocaleString()}</small>
+              <div class="post-content" id="content-${id}" data-full-content="${fullContent}">
+                ${preview}
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error("Load error:", err);
+        postsDiv.innerHTML = "<p>展示内容出现错误</p>";
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function togglePostContent(id) {
+      const contentEl = document.getElementById(`content-${id}`);
+      if (!contentEl) return;
+      
+      const fullContent = contentEl.dataset.fullContent;
+      if (!fullContent) return;
+
+      if (contentEl.classList.contains('full')) {
+        contentEl.classList.remove('full');
+        const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : "");
+        contentEl.textContent = preview;
+      } else {
+        contentEl.classList.add('full');
+        contentEl.textContent = fullContent;
+      }
+    }
+
+    loadApproved();
   </script>
 </body>
 </html>
