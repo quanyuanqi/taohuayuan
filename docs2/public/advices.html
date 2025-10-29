@@ -49,12 +49,26 @@
       margin-bottom: 15px;
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      cursor: pointer;
+    }
+    .post:hover {
+      background-color: #f9f9f9;
     }
     .post h3 {
       margin-top: 0;
+      margin-bottom: 8px;
+      color: #0078f2;
     }
     .post small {
       color: #888;
+    }
+    .post-content {
+      max-height: 120px; /* 默认只显示前100字符的高度 */
+      overflow-y: auto;
+      transition: max-height 0.3s ease;
+    }
+    .post-content.full {
+      max-height: none; /* 展开后不限制高度 */
     }
     .hint {
       position: absolute;
@@ -130,10 +144,12 @@
         const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
 
         postsDiv.innerHTML = sorted.map(p => `
-          <div class="post">
+          <div class="post" onclick="togglePostContent('${p.id}')">
             <h3>${escapeHtml(p.title)}</h3>
             <small>${new Date(p.date).toLocaleString()}</small>
-            <p>${escapeHtml(p.content).slice(0, 100)}${p.content.length > 100 ? "..." : ""}</p>
+            <div class="post-content" id="content-${p.id}">
+              ${escapeHtml(p.content).slice(0, 100)}${p.content.length > 100 ? "..." : ""}
+            </div>
           </div>
         `).join("");
       } catch (err) {
@@ -146,6 +162,31 @@
       return str.replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[c]));
+    }
+
+    // ✅ 新增：切换内容显示状态
+    function togglePostContent(id) {
+      const contentEl = document.getElementById(`content-${id}`);
+      if (!contentEl) return;
+
+      if (contentEl.classList.contains('full')) {
+        // 收起
+        contentEl.classList.remove('full');
+        // 重新设置为前100字 + ...
+        const post = Array.from(document.querySelectorAll('.post')).find(p => p.onclick.toString().includes(id));
+        if (post) {
+          const data = post.dataset; // 需要提前存储完整内容
+          const fullText = data.fullContent || contentEl.textContent.replace(/\.\.\.$/, '');
+          contentEl.textContent = fullText.slice(0, 100) + (fullText.length > 100 ? "..." : "");
+        }
+      } else {
+        // 展开
+        contentEl.classList.add('full');
+        const fullText = contentEl.dataset.fullContent;
+        if (fullText) {
+          contentEl.textContent = fullText;
+        }
+      }
     }
 
     loadApproved();
