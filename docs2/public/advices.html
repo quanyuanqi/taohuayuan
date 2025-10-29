@@ -10,9 +10,23 @@
       margin: 20px;
       background: #f8f9fa;
       color: #333;
+      position: relative; /* 为左上角链接定位 */
     }
+
+    /* 页面左上角标题 */
+    .page-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #0056b3;
+      text-decoration: none;
+    }
+
     h1 {
       text-align: center;
+      margin-top: 60px; /* 避免与左上角标题重叠 */
     }
     form {
       max-width: 600px;
@@ -84,6 +98,10 @@
   </style>
 </head>
 <body>
+
+  <!-- 左上角“桃花源”标题（带链接） -->
+  <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
+
   <h1>小区建言献策</h1>
   <form id="adviceForm">
     <input type="text" id="title" name="title" placeholder="标题 (30字以内)" maxlength="100" required />
