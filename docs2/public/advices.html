@@ -76,4 +76,131 @@
       font-size: 0.9rem;
       pointer-events: none;
       top: 12px;
-      left: 14
+      left: 14px;
+    }
+    .textarea-container {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h1>小区建言献策</h1>
+  <form id="adviceForm">
+    <input type="text" id="title" name="title" placeholder="标题 (30字以内)" maxlength="100" required />
+    <div class="textarea-container">
+      <span class="hint">内容（2000字以内）</span>
+      <textarea id="content" name="content" rows="5" maxlength="1000" required></textarea>
+    </div>
+    <button type="submit">提交</button>
+    <p id="msg"></p>
+  </form>
+
+  <div class="posts" id="approvedPosts"></div>
+
+  <script>
+    const form = document.getElementById("adviceForm");
+    const msg = document.getElementById("msg");
+    const postsDiv = document.getElementById("approvedPosts");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "正在提交...";
+      const title = form.title.value.trim();
+      const content = form.content.value.trim();
+
+      if (!title || !content) {
+        msg.textContent = "请填写完整内容";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+        msg.textContent = "提交成功！请等待网站处理后显示，一般30分钟左右。";
+        form.reset();
+      } catch (err) {
+        console.error("Submit error:", err);
+        msg.textContent = "Error: " + err.message;
+      }
+    });
+
+    async function loadApproved() {
+      postsDiv.innerHTML = "<p>正在努力展示内容中...</p>";
+      try {
+        const res = await fetch("/api/list");
+        const posts = await res.json();
+        if (!Array.isArray(posts) || posts.length === 0) {
+          postsDiv.innerHTML = "<p>暂时没有内容</p>";
+          return;
+        }
+
+        // ✅ Sort by date descending & show only latest 20
+        const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+
+        postsDiv.innerHTML = sorted.map(p => {
+          // ✅ 存储完整内容到 data-full-content 属性
+          const fullContent = escapeHtml(p.content);
+          const preview = fullContent.slice(0, 100) + (fullContent.length > 100 ? "..." : "");
+          // 假设后端返回了唯一 id，如果没有则用索引或时间戳
+          const id = p.id || `post-${Date.now()}-${Math.random()}`;
+          return `
+            <div class="post" onclick="togglePostContent('${id}')">
+              <h3>${escapeHtml(p.title)}</h3>
+              <small>${new Date(p.date).toLocaleString()}</small>
+              <div class="post-content" id="content-${id}" data-full-content="${fullContent}">
+                ${preview}
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error("Load error:", err);
+        postsDiv.innerHTML = "<p>展示内容出现错误</p>";
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    // ✅ 修正：切换内容显示状态
+    function togglePostContent(id) {
+      console.log("点击了ID:", id); // 🔍 调试：打印点击的ID
+      const contentEl = document.getElementById(`content-${id}`);
+      if (!contentEl) {
+        console.error("找不到内容元素:", `content-${id}`); // 🔍 调试：元素未找到
+        return;
+      }
+
+      const fullContent = contentEl.dataset.fullContent;
+      if (!fullContent) {
+        console.error("找不到完整内容数据:", id); // 🔍 调试：数据未存储
+        return;
+      }
+
+      if (contentEl.classList.contains('full')) {
+        // 收起
+        console.log("收起内容:", id); // 🔍 调试：收起状态
+        contentEl.classList.remove('full');
+        const preview = fullContent.slice(0, 100) + (fullContent.length > 100 ? "..." : "");
+        contentEl.textContent = preview;
+      } else {
+        // 展开
+        console.log("展开内容:", id); // 🔍 调试：展开状态
+        contentEl.classList.add('full');
+        contentEl.textContent = fullContent;
+      }
+    }
+
+    loadApproved();
+  </script>
+</body>
+</html>
