@@ -16,9 +16,9 @@
     /* 页面左上角标题 */
     .page-title {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 2.0rem;
+      top: 10px;
+      left: 10px;
+      font-size: 2.0rem; /* 增大字体 */
       font-weight: bold;
       color: #0056b3;
       text-decoration: none;
@@ -26,7 +26,7 @@
 
     h1 {
       text-align: center;
-      margin-top: 60px; /* 避免与左上角标题重叠 */
+      margin-top: 80px; /* 避免与左上角标题重叠 */
     }
     form {
       max-width: 600px;
@@ -77,7 +77,7 @@
       color: #888;
     }
     .post-content {
-      max-height: 120px; /* 默认只显示前100字符的高度 */
+      max-height: 100px; /* 调整默认高度以适应30字 */
       overflow-y: auto;
       transition: max-height 0.3s ease;
     }
@@ -164,7 +164,7 @@
         postsDiv.innerHTML = sorted.map(p => {
           // ✅ 存储完整内容到 data-full-content 属性
           const fullContent = escapeHtml(p.content);
-          const preview = fullContent.slice(0, 100) + (fullContent.length > 100 ? "..." : "");
+          const preview = fullContent.slice(0, 30) + (fullContent.length > 30 ? "..." : ""); // 改为30字
           // 假设后端返回了唯一 id，如果没有则用索引或时间戳
           const id = p.id || `post-${Date.now()}-${Math.random()}`;
           return `
@@ -208,7 +208,7 @@
         // 收起
         console.log("收起内容:", id); // 🔍 调试：收起状态
         contentEl.classList.remove('full');
-        const preview = fullContent.slice(0, 100) + (fullContent.length > 100 ? "..." : "");
+        const preview = fullContent.slice(0, 30) + (fullContent.length > 30 ? "..." : ""); // 收起时显示30字
         contentEl.textContent = preview;
       } else {
         // 展开
