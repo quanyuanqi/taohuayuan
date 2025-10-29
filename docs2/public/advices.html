@@ -10,29 +10,24 @@
       margin: 20px;
       background: #f8f9fa;
       color: #333;
-      position: relative;
+      position: relative; /* 为左上角链接定位 */
     }
 
-    /* 左上角固定链接 */
+    /* 页面左上角标题 */
     .page-title {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 2.0rem;
+      top: 10px;
+      left: 10px;
+      font-size: 2.0rem; /* 增大字体 */
       font-weight: bold;
       color: #0056b3;
       text-decoration: none;
-      z-index: 10;
     }
 
-    /* 主标题样式 */
     h1 {
       text-align: center;
-      margin-top: 120px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
+      margin-top: 80px; /* 避免与左上角标题重叠 */
     }
-    
     form {
       max-width: 600px;
       margin: 0 auto 40px;
@@ -82,12 +77,12 @@
       color: #888;
     }
     .post-content {
-      max-height: 140px;
+      max-height: 140px; /* 调整默认高度以适应60字 */
       overflow-y: auto;
       transition: max-height 0.3s ease;
     }
     .post-content.full {
-      max-height: none;
+      max-height: none; /* 展开后不限制高度 */
     }
     .hint {
       position: absolute;
@@ -103,6 +98,7 @@
   </style>
 </head>
 <body>
+
   <!-- 左上角“桃花源”标题（带链接） -->
   <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
 
@@ -162,11 +158,14 @@
           return;
         }
 
+        // ✅ Sort by date descending & show only latest 20
         const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
 
         postsDiv.innerHTML = sorted.map(p => {
+          // ✅ 存储完整内容到 data-full-content 属性
           const fullContent = escapeHtml(p.content);
-          const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : "");
+          const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : ""); // 改为60字
+          // 假设后端返回了唯一 id，如果没有则用索引或时间戳
           const id = p.id || `post-${Date.now()}-${Math.random()}`;
           return `
             <div class="post" onclick="togglePostContent('${id}')">
@@ -190,18 +189,30 @@
       }[c]));
     }
 
+    // ✅ 修正：切换内容显示状态
     function togglePostContent(id) {
+      console.log("点击了ID:", id); // 🔍 调试：打印点击的ID
       const contentEl = document.getElementById(`content-${id}`);
-      if (!contentEl) return;
-      
+      if (!contentEl) {
+        console.error("找不到内容元素:", `content-${id}`); // 🔍 调试：元素未找到
+        return;
+      }
+
       const fullContent = contentEl.dataset.fullContent;
-      if (!fullContent) return;
+      if (!fullContent) {
+        console.error("找不到完整内容数据:", id); // 🔍 调试：数据未存储
+        return;
+      }
 
       if (contentEl.classList.contains('full')) {
+        // 收起
+        console.log("收起内容:", id); // 🔍 调试：收起状态
         contentEl.classList.remove('full');
-        const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : "");
+        const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : ""); // 收起时显示60字
         contentEl.textContent = preview;
       } else {
+        // 展开
+        console.log("展开内容:", id); // 🔍 调试：展开状态
         contentEl.classList.add('full');
         contentEl.textContent = fullContent;
       }
