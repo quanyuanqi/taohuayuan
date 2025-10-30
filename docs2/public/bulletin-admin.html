@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>桃花源业委会公告发布后台</title>
+  <title>公告发布后台</title>
   <style>
     * {
       margin: 0;
@@ -226,6 +226,7 @@
     // 全局变量
     let isLoggedIn = false;
     let posts = [];
+    let currentSessionId = null;
 
     // DOM 元素
     const loginContainer = document.getElementById('login-container');
@@ -250,20 +251,23 @@
       }
 
       try {
-        // 验证密码（实际应调用后端API验证）
-        const response = await fetch('/api/admin/auth', {
+        // ✅ 更新 API 路径
+        const response = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password })
         });
 
         if (response.ok) {
+          const data = await response.json();
           isLoggedIn = true;
+          currentSessionId = data.sessionId;
           loginContainer.style.display = 'none';
           adminContent.style.display = 'block';
           loadPosts(); // 加载文章列表
         } else {
-          loginMessage.textContent = '密码错误';
+          const error = await response.json();
+          loginMessage.textContent = error.error || '密码错误';
         }
       } catch (err) {
         console.error('Login error:', err);
@@ -323,18 +327,24 @@
             formData.append('file', file);
             formData.append('key', `bulletin-attachments/${Date.now()}-${file.name}`);
 
-            // 上传到七牛云（需要后端API代理）
+            // ✅ 更新上传 API 路径
             const uploadResponse = await fetch('/api/upload', {
               method: 'POST',
               body: formData
             });
 
-            if (!uploadResponse.ok) throw new Error('附件上传失败');
+            if (!uploadResponse.ok) {
+              const error = await uploadResponse.json();
+              throw new Error(error.error || '附件上传失败');
+            }
 
             const uploadData = await uploadResponse.json();
+            
+            // 这里需要根据实际的上传响应调整
+            // 如果是直传，返回的是上传凭证；如果是代理上传，返回的是文件URL
             return {
               name: file.name,
-              url: uploadData.url,
+              url: uploadData.url || `https://your-bucket.qiniucs.com/${uploadData.key}`,
               size: file.size
             };
           });
@@ -345,7 +355,10 @@
         // 发布文章
         const response = await fetch('/api/bulletin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentSessionId}`
+          },
           body: JSON.stringify(postData)
         });
 
@@ -359,7 +372,8 @@
           // 重新加载列表
           loadPosts();
         } else {
-          throw new Error('发布失败');
+          const error = await response.json();
+          throw new Error(error.error || '发布失败');
         }
       } catch (err) {
         console.error('Publish error:', err);
@@ -373,6 +387,7 @@
     // 加载文章列表
     async function loadPosts() {
       try {
+        // ✅ 更新 API 路径
         const response = await fetch('/api/bulletin');
         if (response.ok) {
           posts = await response.json();
@@ -415,13 +430,17 @@
 
       try {
         const response = await fetch(`/api/bulletin/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${currentSessionId}`
+          }
         });
 
         if (response.ok) {
           loadPosts(); // 重新加载列表
         } else {
-          alert('删除失败');
+          const error = await response.json();
+          alert(error.error || '删除失败');
         }
       } catch (err) {
         console.error('Delete error:', err);
