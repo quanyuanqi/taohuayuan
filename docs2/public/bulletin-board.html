@@ -182,9 +182,9 @@
 
   <!-- 页面主标题 -->
   <div class="title-container">
-    <div class="title-main">桃花源别墅业委会</div>
-    <div class="title-sub">公告栏</div>
-    <div class="title-tag">重要通知与信息</div>
+    <div class="title-main">小区公告栏</div>
+    <div class="title-sub">重要通知与信息</div>
+    <div class="title-tag">持续更新</div>
   </div>
 
   <!-- 公告列表 -->
@@ -201,6 +201,7 @@
     // 加载公告列表
     async function loadBulletins() {
       try {
+        // ✅ 更新 API 路径
         const response = await fetch('/api/bulletin');
         if (!response.ok) throw new Error('加载失败');
         
