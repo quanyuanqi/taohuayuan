@@ -44,7 +44,7 @@ export async function onRequestPost(context) {
     // 获取七牛云配置
     const accessKey = env.KODO_ACCESS;
     const secretKey = env.KODO_SECRET;
-    const bucket = 'tomsimgs'; // ✅ 你的存储桶名称
+    const bucket = 'tomsimgs'; // 你的存储桶名称
 
     if (!accessKey || !secretKey) {
       return new Response(JSON.stringify({ error: '七牛云配置错误' }), {
@@ -56,15 +56,32 @@ export async function onRequestPost(context) {
     // 读取文件内容
     const fileBuffer = await file.arrayBuffer();
     
-    // 生成上传 token
+    // 生成上传 token - 使用七牛云官方的 token 生成方式
     const putPolicy = {
       scope: `${bucket}:${key}`,
       deadline: Math.floor(Date.now() / 1000) + 3600 // 1小时过期
     };
 
     const encodedPutPolicy = btoa(JSON.stringify(putPolicy));
-    const encodedSign = await hmacSha1(secretKey, encodedPutPolicy);
-    const uploadToken = `${accessKey}:${encodedSign}:${encodedPutPolicy}`;
+    
+    // 使用 crypto.subtle.sign 生成 HMAC-SHA1 签名
+    const encoder = new TextEncoder();
+    const keyBuffer = encoder.encode(secretKey);
+    const dataBuffer = encoder.encode(encodedPutPolicy);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'HMAC', hash: 'SHA-1' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBuffer);
+    const signatureArray = Array.from(new Uint8Array(signature));
+    const signatureHex = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    const uploadToken = `${accessKey}:${signatureHex}:${encodedPutPolicy}`;
 
     // 直接上传到七牛云
     const uploadUrl = 'https://upload.qiniup.com/';
@@ -86,12 +103,12 @@ export async function onRequestPost(context) {
 
     const result = await uploadResponse.json();
     
-    // ✅ 返回自定义域名的访问链接
+    // 返回自定义域名的访问链接
     return new Response(JSON.stringify({ 
       success: true,
       key: key,
       bucket: bucket,
-      url: `http://7n.xiongwei.net/${key}`, // ✅ 自定义域名
+      url: `http://7n.xiongwei.net/${key}`, // 自定义域名
       size: file.size,
       originalName: file.name
     }), {
@@ -111,26 +128,4 @@ export async function onRequestPost(context) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-}
-
-// HMAC-SHA1 实现
-async function hmacSha1(secret, data) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign']
-  );
-  
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(data)
-  );
-  
-  return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
 }
