@@ -177,7 +177,7 @@
 </head>
 <body>
 
-  <!-- 左上角“桃花源”标题（带链接） -->
+  <!-- 左上角"桃花源"标题（带链接） -->
   <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
 
   <!-- 登录区域 -->
@@ -251,7 +251,6 @@
       }
 
       try {
-        // ✅ 更新 API 路径
         const response = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -320,14 +319,14 @@
           attachments: []
         };
 
-        // 如果有附件，先上传到七牛云
+        // 如果有附件，通过 Worker 上传
         if (files.length > 0) {
           const uploadPromises = files.map(async (file) => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('key', `bulletin-attachments/${Date.now()}-${file.name}`);
 
-            // ✅ 更新上传 API 路径
+            // 使用 Worker 代理上传（文件直接上传到七牛云）
             const uploadResponse = await fetch('/api/upload', {
               method: 'POST',
               body: formData
@@ -340,12 +339,10 @@
 
             const uploadData = await uploadResponse.json();
             
-            // 这里需要根据实际的上传响应调整
-            // 如果是直传，返回的是上传凭证；如果是代理上传，返回的是文件URL
             return {
               name: file.name,
-              url: uploadData.url || `https://your-bucket.qiniucs.com/${uploadData.key}`,
-              size: file.size
+              url: uploadData.url, // 使用 Worker 返回的 URL
+              size: uploadData.size
             };
           });
 
@@ -387,7 +384,6 @@
     // 加载文章列表
     async function loadPosts() {
       try {
-        // ✅ 更新 API 路径
         const response = await fetch('/api/bulletin');
         if (response.ok) {
           posts = await response.json();
@@ -458,3 +454,6 @@
   </script>
 </body>
 </html>
+
+
+
