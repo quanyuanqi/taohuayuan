@@ -5,7 +5,7 @@ export async function onRequestPost(context) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    const key = formData.get('key') || `bulletin-${Date.now()}`;
+    const key = formData.get('key') || `bulletin-attachments/${Date.now()}-${file.name}`;
 
     if (!file) {
       return new Response(JSON.stringify({ error: '未找到文件' }), {
@@ -44,7 +44,7 @@ export async function onRequestPost(context) {
     // 获取七牛云配置
     const accessKey = env.KODO_ACCESS;
     const secretKey = env.KODO_SECRET;
-    const bucket = 'your-bucket-name'; // 替换为你的七牛云存储桶名称
+    const bucket = 'your-bucket-name'; // 你的七牛云存储桶名称
 
     if (!accessKey || !secretKey) {
       return new Response(JSON.stringify({ error: '七牛云配置错误' }), {
@@ -53,10 +53,6 @@ export async function onRequestPost(context) {
       });
     }
 
-    // 这里需要实现七牛云上传逻辑
-    // 由于 Worker 环境限制，建议使用七牛云的直传方式
-    // 或者通过 Worker 代理上传请求
-    
     // 生成上传 token
     const putPolicy = {
       scope: `${bucket}:${key}`,
@@ -67,11 +63,14 @@ export async function onRequestPost(context) {
     const encodedSign = await hmacSha1(secretKey, encodedPutPolicy);
     const uploadToken = `${accessKey}:${encodedSign}:${encodedPutPolicy}`;
 
+    // ✅ 使用自定义域名生成访问 URL
     return new Response(JSON.stringify({ 
       success: true,
       uploadToken,
       key: key,
       bucket: bucket,
+      // ✅ 使用自定义域名
+      url: `http://7n.xiongwei.net/${key}`, // 自定义域名
       size: file.size
     }), {
       status: 200,
