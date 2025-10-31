@@ -378,8 +378,19 @@
           // 重新加载列表
           loadPosts();
         } else {
-          const error = await response.json();
-          throw new Error(error.error || '发布失败');
+          // 兼容服务器可能返回空响应体的情况
+          const contentType = response.headers.get('Content-Type') || '';
+          let message = '发布失败';
+          try {
+            if (contentType.includes('application/json')) {
+              const error = await response.json();
+              message = error.error || message;
+            } else {
+              const text = await response.text();
+              message = text || message;
+            }
+          } catch (_) {}
+          throw new Error(message);
         }
       } catch (err) {
         console.error('Publish error:', err);
