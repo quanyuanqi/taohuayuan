@@ -82,7 +82,7 @@ export async function onRequest(context) {
 
     } else if (method === 'PUT' && bulletinId && bulletinId !== 'bulletin') {
       // 更新公告
-      const existing = await env.BULLETIN_KV.get(bulletinId);
+      const existing = await env.BULLETIN_KV.get(bulletinId, 'json');
       
       if (!existing) {
         return new Response(JSON.stringify({ error: '公告不存在' }), {
