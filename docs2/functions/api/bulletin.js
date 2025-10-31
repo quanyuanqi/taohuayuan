@@ -6,13 +6,31 @@ export async function onRequest(context) {
   const pathParts = url.pathname.split('/');
   const bulletinId = pathParts[pathParts.length - 1]; // 获取 URL 最后一部分作为 ID
 
+  // CORS 预检
+  if (method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400'
+      }
+    });
+  }
+
   // 检查管理员权限（对于非 GET 请求）
   if (method !== 'GET' && method !== 'HEAD') {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: '未授权访问' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
     }
 
@@ -21,7 +39,12 @@ export async function onRequest(context) {
     if (session !== 'authenticated') {
       return new Response(JSON.stringify({ error: '发布失败，请尝试重新登录，或刷新页面，以确保安全。' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
     }
   }
@@ -77,7 +100,12 @@ export async function onRequest(context) {
       
       return new Response(JSON.stringify({ success: true, id: newBulletin.id }), {
         status: 201,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
 
     } else if (method === 'PUT' && bulletinId && bulletinId !== 'bulletin') {
@@ -113,7 +141,12 @@ export async function onRequest(context) {
       
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
 
     } else if (method === 'DELETE' && bulletinId && bulletinId !== 'bulletin') {
@@ -131,20 +164,35 @@ export async function onRequest(context) {
       
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
 
     } else {
       return new Response(JSON.stringify({ error: '方法不支持' }), {
         status: 405,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
     }
   } catch (error) {
     console.error('Bulletin error:', error);
     return new Response(JSON.stringify({ error: '操作失败' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
     });
   }
 }
