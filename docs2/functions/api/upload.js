@@ -56,32 +56,20 @@ export async function onRequestPost(context) {
     // 读取文件内容
     const fileBuffer = await file.arrayBuffer();
     
-    // 生成上传 token - 使用七牛云官方的 token 生成方式
+    // 生成上传策略
     const putPolicy = {
       scope: `${bucket}:${key}`,
       deadline: Math.floor(Date.now() / 1000) + 3600 // 1小时过期
     };
 
-    const encodedPutPolicy = btoa(JSON.stringify(putPolicy));
+    // 使用标准的 Base64 URL 安全编码
+    const encodedPutPolicy = base64UrlEncode(JSON.stringify(putPolicy));
     
-    // 使用 crypto.subtle.sign 生成 HMAC-SHA1 签名
-    const encoder = new TextEncoder();
-    const keyBuffer = encoder.encode(secretKey);
-    const dataBuffer = encoder.encode(encodedPutPolicy);
+    // 生成 HMAC-SHA1 签名
+    const signature = await hmacSha1(secretKey, encodedPutPolicy);
     
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      keyBuffer,
-      { name: 'HMAC', hash: 'SHA-1' },
-      false,
-      ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBuffer);
-    const signatureArray = Array.from(new Uint8Array(signature));
-    const signatureHex = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    const uploadToken = `${accessKey}:${signatureHex}:${encodedPutPolicy}`;
+    // 生成上传 token
+    const uploadToken = `${accessKey}:${signature}:${encodedPutPolicy}`;
 
     // 直接上传到七牛云
     const uploadUrl = 'https://upload.qiniup.com/';
@@ -128,4 +116,36 @@ export async function onRequestPost(context) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+// Base64 URL 安全编码
+function base64UrlEncode(str) {
+  return btoa(str)
+    .replace(/\+/g, '-')  // 将 + 替换为 -
+    .replace(/\//g, '_')  // 将 / 替换为 _
+    .replace(/=/g, '');   // 移除填充 =
+}
+
+// HMAC-SHA1 实现
+async function hmacSha1(secret, data) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(data)
+  );
+  
+  // 将签名转换为十六进制字符串
+  const byteArray = new Uint8Array(signature);
+  return Array.from(byteArray)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
