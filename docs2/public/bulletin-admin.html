@@ -227,6 +227,7 @@
     let isLoggedIn = false;
     let posts = [];
     let currentSessionId = null;
+    let editingId = null; // 当前编辑中的公告ID
 
     // DOM 元素
     const loginContainer = document.getElementById('login-container');
@@ -329,6 +330,9 @@
             // 使用 Worker 代理上传（文件直接上传到七牛云）
             const uploadResponse = await fetch('/api/upload', {
               method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${currentSessionId}`
+              },
               body: formData
             });
 
@@ -349,9 +353,12 @@
           postData.attachments = await Promise.all(uploadPromises);
         }
 
-        // 发布文章
-        const response = await fetch('/api/bulletin', {
-          method: 'POST',
+        // 发布或更新文章
+        const isEditing = Boolean(editingId);
+        const endpoint = isEditing ? `/api/bulletin/${editingId}` : '/api/bulletin';
+        const method = isEditing ? 'PUT' : 'POST';
+        const response = await fetch(endpoint, {
+          method,
           headers: { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${currentSessionId}`
@@ -360,12 +367,14 @@
         });
 
         if (response.ok) {
-          publishMessage.innerHTML = '<div class="success">发布成功！</div>';
+          publishMessage.innerHTML = `<div class="success">${editingId ? '更新成功！' : '发布成功！'}</div>`;
           // 清空表单
           postTitle.value = '';
           postContent.value = '';
           postAttachments.value = '';
           attachmentPreview.innerHTML = '';
+          editingId = null;
+          publishBtn.textContent = '发布';
           // 重新加载列表
           loadPosts();
         } else {
@@ -415,6 +424,8 @@
 
       postTitle.value = post.title;
       postContent.value = post.content;
+      editingId = id;
+      publishBtn.textContent = '保存';
       
       // 滚动到表单顶部
       document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
@@ -454,6 +465,5 @@
   </script>
 </body>
 </html>
-
 
 
