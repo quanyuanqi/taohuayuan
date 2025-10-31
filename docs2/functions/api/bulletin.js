@@ -19,7 +19,7 @@ export async function onRequest(context) {
     const token = authHeader.replace('Bearer ', '');
     const session = await env.ADMIN_SESSIONS.get(token);
     if (session !== 'authenticated') {
-      return new Response(JSON.stringify({ error: '会话无效' }), {
+      return new Response(JSON.stringify({ error: '发布失败，请尝试重新登录，或刷新页面，以确保安全。' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
