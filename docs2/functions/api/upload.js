@@ -1,151 +1,474 @@
-// functions/api/upload.js
-export async function onRequestPost(context) {
-  const { env, request } = context;
-  
-  try {
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const key = formData.get('key') || `bulletin-attachments/${Date.now()}-${file.name}`;
-
-    if (!file) {
-      return new Response(JSON.stringify({ error: '未找到文件' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公告发布后台</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.8;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative;
     }
 
-    // 检查文件类型
-    const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif',
-      'application/pdf',
-      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      return new Response(JSON.stringify({ 
-        error: '文件类型不支持',
-        allowedTypes: allowedTypes.join(', ')
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    /* 页面左上角标题 */
+    .page-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 2.0rem;
+      font-weight: bold;
+      color: #0056b3;
+      text-decoration: none;
     }
 
-    // 检查文件大小（限制 10MB）
-    if (file.size > 10 * 1024 * 1024) {
-      return new Response(JSON.stringify({ error: '文件大小不能超过 10MB' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    /* 登录区域 */
+    .login-container {
+      max-width: 500px;
+      margin: 100px auto 40px;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
     }
 
-    // 获取七牛云配置
-    const accessKey = env.KODO_ACCESS;
-    const secretKey = env.KODO_SECRET;
-    const bucket = 'tomsimgs'; // 你的存储桶名称
-
-    if (!accessKey || !secretKey) {
-      return new Response(JSON.stringify({ error: '七牛云配置错误' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    .form-group {
+      margin-bottom: 20px;
     }
 
-    // 读取文件内容
-    const fileBuffer = await file.arrayBuffer();
-    
-    // 生成上传策略
-    const putPolicy = {
-      scope: `${bucket}:${key}`,
-      deadline: Math.floor(Date.now() / 1000) + 3600 // 1小时过期
-    };
-
-    // 使用标准的 Base64 URL 安全编码
-    const encodedPutPolicy = base64UrlEncode(JSON.stringify(putPolicy));
-    
-    // 生成 HMAC-SHA1 签名
-    const signature = await hmacSha1(secretKey, encodedPutPolicy);
-    
-    // 生成上传 token
-    const uploadToken = `${accessKey}:${signature}:${encodedPutPolicy}`;
-
-    // 直接上传到七牛云
-    const uploadUrl = 'https://upload.qiniup.com/';
-    const uploadFormData = new FormData();
-    uploadFormData.append('token', uploadToken);
-    uploadFormData.append('file', new Blob([fileBuffer]), file.name);
-    uploadFormData.append('key', key);
-
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      body: uploadFormData
-    });
-
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('Upload to Qiniu failed:', errorText);
-      throw new Error(`上传失败: ${errorText}`);
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
     }
 
-    const result = await uploadResponse.json();
-    
-    // 返回自定义域名的访问链接
-    return new Response(JSON.stringify({ 
-      success: true,
-      key: key,
-      bucket: bucket,
-      url: `http://7n.xiongwei.net/${key}`, // 自定义域名
-      size: file.size,
-      originalName: file.name
-    }), {
-      status: 200,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'Content-Type'
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #0077cc;
+    }
+
+    button {
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0066b3;
+    }
+
+    /* 主内容区域 */
+    .admin-content {
+      display: none;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .form-section {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .attachments {
+      margin-top: 15px;
+    }
+
+    .attachment-list {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .attachment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .posts-list {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .post-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .post-title {
+      flex: 1;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-edit, .btn-delete {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+
+    .btn-edit {
+      background-color: #28a745;
+    }
+
+    .btn-edit:hover {
+      background-color: #218838;
+    }
+
+    .btn-delete {
+      background-color: #dc3545;
+    }
+
+    .btn-delete:hover {
+      background-color: #c82333;
+    }
+
+    .error {
+      color: #dc3545;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .success {
+      color: #28a745;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 左上角"桃花源"标题（带链接） -->
+  <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
+
+  <!-- 登录区域 -->
+  <div id="login-container" class="login-container">
+    <h2>管理员登录</h2>
+    <div class="form-group">
+      <label for="admin-password">密码：</label>
+      <input type="password" id="admin-password" placeholder="请输入管理员密码" />
+    </div>
+    <button id="login-btn">登录</button>
+    <div id="login-message" class="error"></div>
+  </div>
+
+  <!-- 管理员内容区域 -->
+  <div id="admin-content" class="admin-content">
+    <h2 style="text-align: center; margin-bottom: 20px;">公告发布管理</h2>
+
+    <!-- 发布表单 -->
+    <div class="form-section">
+      <h3>发布新公告</h3>
+      <div class="form-group">
+        <label for="post-title">标题：</label>
+        <input type="text" id="post-title" placeholder="请输入公告标题" />
+      </div>
+      <div class="form-group">
+        <label for="post-content">内容：</label>
+        <textarea id="post-content" rows="6" placeholder="请输入公告内容，支持超链接"></textarea>
+      </div>
+      <div class="form-group attachments">
+        <label for="post-attachments">附件（图片/文档）：</label>
+        <input type="file" id="post-attachments" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.xls,.xlsx" />
+        <div id="attachment-preview" class="attachment-list"></div>
+      </div>
+      <button id="publish-btn">发布</button>
+      <div id="publish-message"></div>
+    </div>
+
+    <!-- 已发布文章列表 -->
+    <div class="posts-list">
+      <h3>已发布公告</h3>
+      <div id="posts-list-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let isLoggedIn = false;
+    let posts = [];
+    let currentSessionId = null;
+
+    // DOM 元素
+    const loginContainer = document.getElementById('login-container');
+    const adminContent = document.getElementById('admin-content');
+    const adminPasswordInput = document.getElementById('admin-password');
+    const loginBtn = document.getElementById('login-btn');
+    const loginMessage = document.getElementById('login-message');
+    const postTitle = document.getElementById('post-title');
+    const postContent = document.getElementById('post-content');
+    const postAttachments = document.getElementById('post-attachments');
+    const attachmentPreview = document.getElementById('attachment-preview');
+    const publishBtn = document.getElementById('publish-btn');
+    const publishMessage = document.getElementById('publish-message');
+    const postsListContainer = document.getElementById('posts-list-container');
+
+    // 登录功能
+    loginBtn.addEventListener('click', async () => {
+      const password = adminPasswordInput.value.trim();
+      if (!password) {
+        loginMessage.textContent = '请输入密码';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          isLoggedIn = true;
+          currentSessionId = data.sessionId;
+          loginContainer.style.display = 'none';
+          adminContent.style.display = 'block';
+          loadPosts(); // 加载文章列表
+        } else {
+          const error = await response.json();
+          loginMessage.textContent = error.error || '密码错误';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        loginMessage.textContent = '登录失败，请重试';
       }
     });
 
-  } catch (error) {
-    console.error('Upload error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    // 附件预览
+    postAttachments.addEventListener('change', () => {
+      const files = Array.from(postAttachments.files);
+      attachmentPreview.innerHTML = files.map(file => `
+        <div class="attachment-item">
+          <span>${file.name}</span>
+          <span>${(file.size / 1024).toFixed(1)} KB</span>
+        </div>
+      `).join('');
     });
-  }
-}
 
-// Base64 URL 安全编码
-function base64UrlEncode(str) {
-  return btoa(str)
-    .replace(/\+/g, '-')  // 将 + 替换为 -
-    .replace(/\//g, '_')  // 将 / 替换为 _
-    .replace(/=/g, '');   // 移除填充 =
-}
+    // 发布功能
+    publishBtn.addEventListener('click', async () => {
+      const title = postTitle.value.trim();
+      const content = postContent.value.trim();
+      const files = Array.from(postAttachments.files);
 
-// HMAC-SHA1 实现
-async function hmacSha1(secret, data) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign']
-  );
-  
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(data)
-  );
-  
-  // 将签名转换为十六进制字符串
-  const byteArray = new Uint8Array(signature);
-  return Array.from(byteArray)
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
+      if (!title || !content) {
+        publishMessage.innerHTML = '<div class="error">标题和内容不能为空</div>';
+        return;
+      }
+
+      if (files.length > 0) {
+        // 检查文件类型
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        
+        for (const file of files) {
+          if (!allowedTypes.includes(file.type)) {
+            publishMessage.innerHTML = `<div class="error">文件类型不支持：${file.name}</div>`;
+            return;
+          }
+        }
+      }
+
+      try {
+        publishBtn.disabled = true;
+        publishBtn.textContent = '发布中...';
+
+        // 准备发布数据
+        const postData = {
+          title,
+          content,
+          attachments: []
+        };
+
+        // 如果有附件，通过 Worker 上传
+        if (files.length > 0) {
+          const uploadPromises = files.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('key', `bulletin-attachments/${Date.now()}-${file.name}`);
+
+            // 使用 Worker 生成上传凭证
+            const uploadResponse = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!uploadResponse.ok) {
+              const error = await uploadResponse.json();
+              throw new Error(error.error || '附件上传失败');
+            }
+
+            const uploadData = await uploadResponse.json();
+            
+            // 使用获取到的上传凭证直接上传到七牛云
+            const directUploadFormData = new FormData();
+            directUploadFormData.append('token', uploadData.uploadToken);
+            directUploadFormData.append('key', uploadData.key);
+            directUploadFormData.append('file', file);
+
+            const directUploadResponse = await fetch('https://upload.qiniup.com/', {
+              method: 'POST',
+              body: directUploadFormData
+            });
+
+            if (!directUploadResponse.ok) {
+              const errorText = await directUploadResponse.text();
+              console.error('Direct upload failed:', errorText);
+              throw new Error(`附件上传失败: ${errorText}`);
+            }
+
+            // 上传成功，返回预期的访问 URL
+            return {
+              name: file.name,
+              url: uploadData.url, // 使用 Worker 返回的 URL
+              size: uploadData.size
+            };
+          });
+
+          postData.attachments = await Promise.all(uploadPromises);
+        }
+
+        // 发布文章
+        const response = await fetch('/api/bulletin', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentSessionId}`
+          },
+          body: JSON.stringify(postData)
+        });
+
+        if (response.ok) {
+          publishMessage.innerHTML = '<div class="success">发布成功！</div>';
+          // 清空表单
+          postTitle.value = '';
+          postContent.value = '';
+          postAttachments.value = '';
+          attachmentPreview.innerHTML = '';
+          // 重新加载列表
+          loadPosts();
+        } else {
+          const error = await response.json();
+          throw new Error(error.error || '发布失败');
+        }
+      } catch (err) {
+        console.error('Publish error:', err);
+        publishMessage.innerHTML = `<div class="error">发布失败：${err.message}</div>`;
+      } finally {
+        publishBtn.disabled = false;
+        publishBtn.textContent = '发布';
+      }
+    });
+
+    // 加载文章列表
+    async function loadPosts() {
+      try {
+        const response = await fetch('/api/bulletin');
+        if (response.ok) {
+          posts = await response.json();
+          renderPostsList();
+        }
+      } catch (err) {
+        console.error('Load posts error:', err);
+        postsListContainer.innerHTML = '<p>加载失败</p>';
+      }
+    }
+
+    // 渲染文章列表
+    function renderPostsList() {
+      postsListContainer.innerHTML = posts.map(post => `
+        <div class="post-item">
+          <div class="post-title">${post.title}</div>
+          <div class="post-actions">
+            <button class="btn-edit" onclick="editPost('${post.id}')">编辑</button>
+            <button class="btn-delete" onclick="deletePost('${post.id}')">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 编辑文章
+    window.editPost = async function(id) {
+      const post = posts.find(p => p.id === id);
+      if (!post) return;
+
+      postTitle.value = post.title;
+      postContent.value = post.content;
+      
+      // 滚动到表单顶部
+      document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // 删除文章
+    window.deletePost = async function(id) {
+      if (!confirm('确定要删除这篇文章吗？')) return;
+
+      try {
+        const response = await fetch(`/api/bulletin/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${currentSessionId}`
+          }
+        });
+
+        if (response.ok) {
+          loadPosts(); // 重新加载列表
+        } else {
+          const error = await response.json();
+          alert(error.error || '删除失败');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('删除失败');
+      }
+    };
+
+    // 初始化
+    function init() {
+      // 检查是否已登录（可通过 Cookie 或 localStorage）
+      // 这里简化处理，实际应通过后端验证
+    }
+
+    init();
+  </script>
+</body>
+</html>
