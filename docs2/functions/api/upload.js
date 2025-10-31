@@ -44,7 +44,7 @@ export async function onRequestPost(context) {
     // 获取七牛云配置
     const accessKey = env.KODO_ACCESS;
     const secretKey = env.KODO_SECRET;
-    const bucket = 'your-bucket-name'; // 你的七牛云存储桶名称
+    const bucket = 'tomsimgs'; // ✅ 你的存储桶名称
 
     if (!accessKey || !secretKey) {
       return new Response(JSON.stringify({ error: '七牛云配置错误' }), {
@@ -53,6 +53,9 @@ export async function onRequestPost(context) {
       });
     }
 
+    // 读取文件内容
+    const fileBuffer = await file.arrayBuffer();
+    
     // 生成上传 token
     const putPolicy = {
       scope: `${bucket}:${key}`,
@@ -63,15 +66,34 @@ export async function onRequestPost(context) {
     const encodedSign = await hmacSha1(secretKey, encodedPutPolicy);
     const uploadToken = `${accessKey}:${encodedSign}:${encodedPutPolicy}`;
 
-    // ✅ 使用自定义域名生成访问 URL
+    // 直接上传到七牛云
+    const uploadUrl = 'https://upload.qiniup.com/';
+    const uploadFormData = new FormData();
+    uploadFormData.append('token', uploadToken);
+    uploadFormData.append('file', new Blob([fileBuffer]), file.name);
+    uploadFormData.append('key', key);
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      body: uploadFormData
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('Upload to Qiniu failed:', errorText);
+      throw new Error(`上传失败: ${errorText}`);
+    }
+
+    const result = await uploadResponse.json();
+    
+    // ✅ 返回自定义域名的访问链接
     return new Response(JSON.stringify({ 
       success: true,
-      uploadToken,
       key: key,
       bucket: bucket,
-      // ✅ 使用自定义域名
-      url: `http://7n.xiongwei.net/${key}`, // 自定义域名
-      size: file.size
+      url: `http://7n.xiongwei.net/${key}`, // ✅ 自定义域名
+      size: file.size,
+      originalName: file.name
     }), {
       status: 200,
       headers: { 
