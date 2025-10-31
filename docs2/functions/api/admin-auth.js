@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
       });
     }
 
-    // 设置临时会话（可选：使用 KV 存储会话）
+    // 设置临时会话（使用 KV 存储会话）
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     await env.ADMIN_SESSIONS.put(sessionId, 'authenticated', { expirationTtl: 3600 }); // 1小时过期
     
@@ -44,3 +44,5 @@ export async function onRequestPost(context) {
     });
   }
 }
+
+
