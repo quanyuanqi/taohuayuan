@@ -7,7 +7,11 @@ export async function onRequestPost(context) {
   if (!authHeader) {
     return new Response(JSON.stringify({ error: '未授权访问' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff'
+      }
     });
   }
   const token = authHeader.replace('Bearer ', '');
@@ -27,7 +31,7 @@ export async function onRequestPost(context) {
   if (!accessKey || !secretKey || !bucket || !publicBase) {
     return new Response(JSON.stringify({ error: '服务端未配置存储参数' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
     });
   }
 
@@ -60,7 +64,9 @@ export async function onRequestPost(context) {
     }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -69,7 +75,7 @@ export async function onRequestPost(context) {
   } catch (err) {
     return new Response(JSON.stringify({ error: '生成上传凭证失败' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
     });
   }
 }
