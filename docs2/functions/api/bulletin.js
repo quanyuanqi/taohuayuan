@@ -27,6 +27,7 @@ export async function onRequest(context) {
         status: 401,
         headers: { 
           'Content-Type': 'application/json',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -41,6 +42,7 @@ export async function onRequest(context) {
         status: 401,
         headers: { 
           'Content-Type': 'application/json',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -68,7 +70,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify(bulletins), {
         status: 200,
         headers: { 
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'public, max-age=30',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -101,7 +105,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true, id: newBulletin.id }), {
         status: 201,
         headers: { 
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -142,7 +148,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -165,7 +173,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -176,7 +186,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ error: '方法不支持' }), {
         status: 405,
         headers: { 
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -188,7 +200,9 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: '操作失败' }), {
       status: 500,
       headers: { 
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
