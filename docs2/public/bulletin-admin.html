@@ -343,6 +343,24 @@
 
             const uploadData = await uploadResponse.json();
             
+            // 使用获取到的上传凭证直接上传到七牛云
+            const directUploadFormData = new FormData();
+            directUploadFormData.append('token', uploadData.uploadToken);
+            directUploadFormData.append('key', uploadData.key);
+            directUploadFormData.append('file', file);
+
+            const directUploadResponse = await fetch('https://upload.qiniup.com/', {
+              method: 'POST',
+              body: directUploadFormData
+            });
+
+            if (!directUploadResponse.ok) {
+              const errorText = await directUploadResponse.text();
+              console.error('Direct upload failed:', errorText);
+              throw new Error(`附件上传失败: ${errorText}`);
+            }
+
+            // 上传成功，返回预期的访问 URL
             return {
               name: file.name,
               url: uploadData.url, // 使用 Worker 返回的 URL
