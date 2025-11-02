@@ -462,25 +462,60 @@
 
     // 删除文章
     window.deletePost = async function(id) {
-      if (!confirm('确定要删除这篇文章吗？')) return;
+      console.log('[DELETE] Frontend: Attempting to delete post with id:', id);
+      console.log('[DELETE] Frontend: Session ID:', currentSessionId ? 'present' : 'missing');
+      
+      if (!confirm('确定要删除这篇文章吗？')) {
+        console.log('[DELETE] Frontend: User cancelled');
+        return;
+      }
 
       try {
-        const response = await fetch(`/api/bulletin/${id}`, {
+        const deleteUrl = `/api/bulletin/${id}`;
+        console.log('[DELETE] Frontend: Request URL:', deleteUrl);
+        console.log('[DELETE] Frontend: Request headers:', {
+          'Authorization': `Bearer ${currentSessionId ? '***' : 'MISSING'}`
+        });
+
+        const response = await fetch(deleteUrl, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${currentSessionId}`
           }
         });
 
+        console.log('[DELETE] Frontend: Response status:', response.status);
+        console.log('[DELETE] Frontend: Response ok:', response.ok);
+        console.log('[DELETE] Frontend: Response headers:', Object.fromEntries(response.headers.entries()));
+
         if (response.ok) {
+          const responseData = await response.json();
+          console.log('[DELETE] Frontend: Success response:', responseData);
           loadPosts(); // 重新加载列表
         } else {
-          const error = await response.json();
-          alert(error.error || '删除失败');
+          const contentType = response.headers.get('Content-Type') || '';
+          let error;
+          try {
+            if (contentType.includes('application/json')) {
+              error = await response.json();
+            } else {
+              const text = await response.text();
+              error = { error: text || 'Unknown error', status: response.status };
+            }
+          } catch (parseErr) {
+            error = { error: `Failed to parse error response. Status: ${response.status}`, status: response.status };
+          }
+          console.error('[DELETE] Frontend: Error response:', error);
+          alert(`删除失败: ${error.error || '未知错误'}\n状态码: ${error.status || response.status}\n详细信息请查看控制台`);
         }
       } catch (err) {
-        console.error('Delete error:', err);
-        alert('删除失败');
+        console.error('[DELETE] Frontend: Exception caught:', err);
+        console.error('[DELETE] Frontend: Error details:', {
+          message: err.message,
+          stack: err.stack,
+          name: err.name
+        });
+        alert(`删除失败: ${err.message}\n详细信息请查看控制台`);
       }
     };
 
