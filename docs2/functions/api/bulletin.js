@@ -5,6 +5,14 @@ export async function onRequest(context) {
   const method = request.method;
   const pathParts = url.pathname.split('/');
   const bulletinId = pathParts[pathParts.length - 1]; // 获取 URL 最后一部分作为 ID
+  
+  console.log('[API] Request received:', {
+    method,
+    pathname: url.pathname,
+    pathParts,
+    bulletinId,
+    hasAuth: !!request.headers.get('Authorization')
+  });
 
   // CORS 预检
   if (method === 'OPTIONS') {
@@ -182,10 +190,16 @@ export async function onRequest(context) {
 
     } else if (method === 'DELETE' && bulletinId && bulletinId !== 'bulletin') {
       // 删除公告
+      console.log('[DELETE] Received delete request for bulletinId:', bulletinId);
+      console.log('[DELETE] URL pathname:', url.pathname);
+      console.log('[DELETE] Path parts:', pathParts);
+      
       const existing = await env.BULLETIN_KV.get(bulletinId);
+      console.log('[DELETE] Existing bulletin found:', existing ? 'yes' : 'no');
       
       if (!existing) {
-        return new Response(JSON.stringify({ error: '公告不存在' }), {
+        console.log('[DELETE] Bulletin not found, returning 404');
+        return new Response(JSON.stringify({ error: '公告不存在', debug: { bulletinId, pathname: url.pathname } }), {
           status: 404,
           headers: { 
             'Content-Type': 'application/json; charset=utf-8',
@@ -198,9 +212,11 @@ export async function onRequest(context) {
         });
       }
 
+      console.log('[DELETE] Attempting to delete bulletin:', bulletinId);
       await env.BULLETIN_KV.delete(bulletinId);
+      console.log('[DELETE] Bulletin deleted successfully');
       
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, debug: { bulletinId } }), {
         status: 200,
         headers: { 
           'Content-Type': 'application/json; charset=utf-8',
@@ -213,7 +229,15 @@ export async function onRequest(context) {
       });
 
     } else {
-      return new Response(JSON.stringify({ error: '方法不支持' }), {
+      console.log('[API] Method not supported or route mismatch:', {
+        method,
+        bulletinId,
+        condition: `method === 'DELETE': ${method === 'DELETE'}, bulletinId: ${bulletinId}, bulletinId !== 'bulletin': ${bulletinId !== 'bulletin'}`
+      });
+      return new Response(JSON.stringify({ 
+        error: '方法不支持',
+        debug: { method, bulletinId, pathname: url.pathname }
+      }), {
         status: 405,
         headers: { 
           'Content-Type': 'application/json; charset=utf-8',
@@ -226,8 +250,20 @@ export async function onRequest(context) {
       });
     }
   } catch (error) {
-    console.error('Bulletin error:', error);
-    return new Response(JSON.stringify({ error: '操作失败' }), {
+    console.error('[ERROR] Bulletin API error:', error);
+    console.error('[ERROR] Method:', method);
+    console.error('[ERROR] BulletinId:', bulletinId);
+    console.error('[ERROR] Pathname:', url.pathname);
+    console.error('[ERROR] Error stack:', error.stack);
+    return new Response(JSON.stringify({ 
+      error: '操作失败',
+      debug: {
+        message: error.message,
+        method,
+        bulletinId,
+        pathname: url.pathname
+      }
+    }), {
       status: 500,
       headers: { 
         'Content-Type': 'application/json; charset=utf-8',
