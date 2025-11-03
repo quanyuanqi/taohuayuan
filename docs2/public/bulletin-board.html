@@ -245,13 +245,25 @@
       }).join('');
 
       document.getElementById('bulletin-list').innerHTML = html;
+      
+      // 为附件查看链接添加事件处理，确保只打开不下载
+      document.querySelectorAll('.attachment-view-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(this.href, '_blank');
+        });
+      });
     }
 
     // 渲染附件
     function renderAttachments(attachments) {
       if (!attachments || attachments.length === 0) return '';
       
-      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => `<div class="attachment-item"><a href="${attachment.url}" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;"><span class="attachment-icon">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href="${attachment.url}" download="${escapeHtml(attachment.name)}" class="attachment-download-btn">下载</a><span style="color: #999; margin-left: 8px;">(${formatFileSize(attachment.size)})</span></div>`).join('')}</div>`;
+      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => {
+        const escapedUrl = attachment.url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        return `<div class="attachment-item"><a href="${escapedUrl}" target="_blank" class="attachment-view-link" style="display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;"><span class="attachment-icon">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href="${escapedUrl}" download="${escapeHtml(attachment.name)}" class="attachment-download-btn">下载</a><span style="color: #999; margin-left: 8px;">(${formatFileSize(attachment.size)})</span></div>`;
+      }).join('')}</div>`;
     }
 
     // 格式化文件大小
