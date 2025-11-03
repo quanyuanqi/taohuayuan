@@ -131,6 +131,24 @@
       line-height: 16px;
       color: white;
       font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .attachment-download-btn {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.2s;
+    }
+
+    .attachment-download-btn:hover {
+      background-color: #218838;
     }
 
     
@@ -233,7 +251,7 @@
     function renderAttachments(attachments) {
       if (!attachments || attachments.length === 0) return '';
       
-      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => `<div class="attachment-item"><span class="attachment-icon">📁</span><a href="${attachment.url}" target="_blank" style="color: #0077cc; text-decoration: none;" ${/\.txt$/i.test(attachment.name) ? `download="${escapeHtml(attachment.name)}"` : ''}>${escapeHtml(attachment.name)}</a><span style="color: #999;">(${formatFileSize(attachment.size)})</span></div>`).join('')}</div>`;
+      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => `<div class="attachment-item"><a href="${attachment.url}" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;"><span class="attachment-icon">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href="${attachment.url}" download="${escapeHtml(attachment.name)}" class="attachment-download-btn">下载</a><span style="color: #999; margin-left: 8px;">(${formatFileSize(attachment.size)})</span></div>`).join('')}</div>`;
     }
 
     // 格式化文件大小
