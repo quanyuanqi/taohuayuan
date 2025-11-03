@@ -223,20 +223,7 @@
         
         const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
-        return `
-          <div class="bulletin-item">
-            <div class="bulletin-title" onclick="toggleBulletin('${bulletin.id}')">
-              ${escapeHtml(bulletin.title)}
-            </div>
-            <div class="bulletin-content preview" id="content-${bulletin.id}">
-              ${previewWithLinks}
-            </div>
-            <div class="bulletin-content full" id="full-content-${bulletin.id}" style="display: none;">
-              ${contentWithLinks}
-              ${renderAttachments(bulletin.attachments)}
-            </div>
-          </div>
-        `;
+        return `<div class="bulletin-item"><div class="bulletin-title" onclick="toggleBulletin('${bulletin.id}')">${escapeHtml(bulletin.title)}</div><div class="bulletin-content preview" id="content-${bulletin.id}">${previewWithLinks}</div><div class="bulletin-content full" id="full-content-${bulletin.id}" style="display: none;">${contentWithLinks}${renderAttachments(bulletin.attachments)}</div></div>`;
       }).join('');
 
       document.getElementById('bulletin-list').innerHTML = html;
@@ -246,20 +233,7 @@
     function renderAttachments(attachments) {
       if (!attachments || attachments.length === 0) return '';
       
-      return `
-        <div class="attachments">
-          <div style="font-weight: bold; margin-bottom: 8px;">附件：</div>
-          ${attachments.map(attachment => `
-            <div class="attachment-item">
-              <span class="attachment-icon">📁</span>
-              <a href="${attachment.url}" target="_blank" style="color: #0077cc; text-decoration: none;">
-                ${escapeHtml(attachment.name)}
-              </a>
-              <span style="color: #999;">(${formatFileSize(attachment.size)})</span>
-            </div>
-          `).join('')}
-        </div>
-      `;
+      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => `<div class="attachment-item"><span class="attachment-icon">📁</span><a href="${attachment.url}" target="_blank" style="color: #0077cc; text-decoration: none;" ${/\.txt$/i.test(attachment.name) ? `download="${escapeHtml(attachment.name)}"` : ''}>${escapeHtml(attachment.name)}</a><span style="color: #999;">(${formatFileSize(attachment.size)})</span></div>`).join('')}</div>`;
     }
 
     // 格式化文件大小
