@@ -252,8 +252,11 @@
       if (!attachments || attachments.length === 0) return '';
       
       return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => {
-        const escapedUrl = attachment.url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        return `<div class="attachment-item"><a href="${escapedUrl}" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;"><span class="attachment-icon">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href="${escapedUrl}" download="${escapeHtml(attachment.name)}" class="attachment-download-btn">下载</a><span style="color: #999; margin-left: 8px;">(${formatFileSize(attachment.size)})</span></div>`;
+        const escapedUrl = attachment.url.replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+        const isWord = /\.(docx?)$/i.test(attachment.name || '');
+        const officeViewer = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(attachment.url)}`;
+        const viewUrl = isWord ? officeViewer : escapedUrl;
+        return `<div class=\"attachment-item\"><a href=\"${viewUrl}\" target=\"_blank\" style=\"display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;\"><span class=\"attachment-icon\">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href=\"${escapedUrl}\" download=\"${escapeHtml(attachment.name)}\" class=\"attachment-download-btn\">下载</a><span style=\"color: #999; margin-left: 8px;\">(${formatFileSize(attachment.size)})</span></div>`;
       }).join('')}</div>`;
     }
 
