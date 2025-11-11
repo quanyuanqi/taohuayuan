@@ -73,8 +73,12 @@
       color: #555;
       margin-bottom: 8px;
       white-space: pre-wrap;
-      max-height: 100px;
-      overflow-y: auto;
+    }
+    .post-content.preview {
+      display: block;
+    }
+    .post-content.full {
+      display: block;
     }
     .post-attachments {
       font-size: 0.85rem;
@@ -176,15 +180,32 @@
               '</div>';
           }
           
+          const fullText = escapeHtml(post.content || '');
+          const previewText = fullText.length > 50 ? fullText.slice(0, 50) + '...' : fullText;
+
+          const commentsHtml = Array.isArray(post.comments) && post.comments.length > 0
+            ? ('<div class="post-attachments"><div style="font-weight:bold;margin-bottom:6px;">评论：</div>' +
+              post.comments.map((c, idx) => {
+                const d = c.date ? new Date(c.date) : null;
+                const dateStr = d && !isNaN(d) ? `${d.getFullYear()}年${(d.getMonth()+1).toString().padStart(2,'0')}月${d.getDate().toString().padStart(2,'0')}日 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}` : '';
+                return `<div style="margin:6px 0; display:flex; align-items:center; gap:8px;">
+                  <div style="flex:1;"><span style="color:#555;margin-right:6px;">${escapeHtml(c.author || '匿名')}</span>${dateStr ? `<span style="color:#888;font-size:0.85rem;margin-right:6px;">${dateStr}</span>` : ''}<span>${escapeHtml(c.content || '')}</span></div>
+                  <button class="btn-delete" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteComment('${post.id}', ${idx})">删除评论</button>
+                </div>`;
+              }).join('') + '</div>')
+            : '';
+
           li.innerHTML = `
-            <strong>${escapeHtml(post.title)}</strong>
+            <strong class="admin-title" style="cursor:pointer;" onclick="togglePost('${post.id}')">${escapeHtml(post.title)}</strong>
             <div class="post-meta">
               <span class="${statusClass}">${statusText}</span> | 
               网名：${escapeHtml(post.author || '匿名')} | 
               时间：${new Date(post.date).toLocaleString('zh-CN')}
             </div>
-            <div class="post-content">${escapeHtml(post.content)}</div>
+            <div class="post-content preview" id="content-${post.id}">${previewText}</div>
+            <div class="post-content full" id="full-content-${post.id}" style="display:none;">${fullText}</div>
             ${attachmentsHtml}
+            ${commentsHtml}
             <div class="actions">
               ${!post.approved ? `<button class="btn-approve" onclick="approve('${post.id}')">审核通过</button>` : ''}
               <button onclick="toggleReplyBox('${post.id}')" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">回复</button>
@@ -203,6 +224,42 @@
         }
       } catch (err) {
         alert('获取建言失败: ' + err.message);
+      }
+    }
+
+    // 切换内容显示
+    window.togglePost = function(id) {
+      const previewEl = document.getElementById(`content-${id}`);
+      const fullEl = document.getElementById(`full-content-${id}`);
+      if (!previewEl || !fullEl) return;
+      if (fullEl.style.display === 'block') {
+        fullEl.style.display = 'none';
+        previewEl.style.display = 'block';
+      } else {
+        previewEl.style.display = 'none';
+        fullEl.style.display = 'block';
+      }
+    }
+
+    // 删除评论
+    async function deleteComment(id, index) {
+      const password = document.getElementById('password').value.trim();
+      if (!password) return alert('请先输入密码');
+      if (!confirm('确定删除该评论吗？')) return;
+      try {
+        const res = await fetch('/api/advice-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, password, action: 'deleteComment', commentIndex: index })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + text);
+        }
+      } catch (err) {
+        alert('删除评论失败: ' + err.message);
       }
     }
 
