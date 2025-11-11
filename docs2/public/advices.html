@@ -504,7 +504,24 @@
         
         const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
-        return `<div class="advice-item"><div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(advice.title)}</div><div class="advice-meta">${escapeHtml(advice.author)} · ${new Date(advice.date).toLocaleString('zh-CN')}</div><div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div><div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${renderAttachments(advice.attachments)}</div></div>`;
+        const repliesHtml = Array.isArray(advice.replies) && advice.replies.length > 0
+          ? `<div class="attachments" style="border-top:none;margin-top:8px;padding-top:0;">${advice.replies.map(r => `<div style="margin:6px 0;"><span style="color:#d00;font-weight:bold;margin-right:6px;">业委会回复</span>${escapeHtml(r.content)}</div>`).join('')}</div>`
+          : '';
+
+        const commentsHtml = Array.isArray(advice.comments) && advice.comments.length > 0
+          ? `<div class="attachments"><div style="font-weight:bold;margin-bottom:8px;">评论：</div>${advice.comments.map(c => `<div style="margin:6px 0;"><span style="color:#555;margin-right:6px;">${escapeHtml(c.author || '匿名')}</span><span>${escapeHtml(c.content)}</span></div>`).join('')}</div>`
+          : '';
+
+        const commentForm = `<div class="attachments"><div style="font-weight:bold;margin-bottom:8px;">我要评论：</div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <input type="text" id="c-author-${advice.id}" placeholder="网名（可选）" style="flex:0 0 160px; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+            <input type="text" id="c-content-${advice.id}" placeholder="评论内容" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+            <button onclick="submitComment('${advice.id}')" style="padding:8px 12px; background:#0077cc; color:#fff; border:none; border-radius:6px; cursor:pointer;">提交</button>
+          </div>
+          <div id="c-msg-${advice.id}" style="font-size:0.9rem;color:#666;"></div>
+        </div>`;
+
+        return `<div class="advice-item"><div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(advice.title)}</div><div class="advice-meta">${escapeHtml(advice.author)} · ${new Date(advice.date).toLocaleString('zh-CN')}</div><div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div><div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${repliesHtml}${renderAttachments(advice.attachments)}${commentsHtml}${commentForm}</div></div>`;
       }).join('');
 
       adviceList.innerHTML = html;
@@ -554,6 +571,42 @@
       return str.replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[c]));
+    }
+
+    // 提交评论
+    window.submitComment = async function(id) {
+      const authorInput = document.getElementById(`c-author-${id}`);
+      const contentInput = document.getElementById(`c-content-${id}`);
+      const msgEl = document.getElementById(`c-msg-${id}`);
+      const author = (authorInput?.value || '').trim();
+      const content = (contentInput?.value || '').trim();
+      if (!content) {
+        msgEl.textContent = '评论内容不能为空';
+        msgEl.style.color = '#dc3545';
+        return;
+      }
+      msgEl.textContent = '正在提交...';
+      msgEl.style.color = '#666';
+      try {
+        const res = await fetch('/api/advice-comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adviceId: id, author, content })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || '提交失败');
+        }
+        msgEl.textContent = '提交成功';
+        msgEl.style.color = '#28a745';
+        if (authorInput) authorInput.value = '';
+        if (contentInput) contentInput.value = '';
+        // 重新加载列表以显示新评论
+        loadAdvices();
+      } catch (e) {
+        msgEl.textContent = `提交失败：${e.message}`;
+        msgEl.style.color = '#dc3545';
+      }
     }
 
     // 初始化
