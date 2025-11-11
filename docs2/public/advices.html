@@ -255,8 +255,8 @@
 
     /* 移动端适配 */
     .comment-box {
-      margin-top: 10px;
-      padding: 12px;
+      margin-top: 6px;
+      padding: 8px;
       border: 1px solid #e6e6e6;
       border-radius: 8px;
       background: #fafafa;
@@ -560,18 +560,22 @@
           : '';
 
         const commentsHtml = Array.isArray(advice.comments) && advice.comments.length > 0
-          ? `<div class="attachments"><div style="font-weight:bold;margin-bottom:8px;">评论：</div>${advice.comments.map(c => `<div style="margin:6px 0;"><span style="color:#555;margin-right:6px;">${escapeHtml(c.author || '匿名')}</span><span>${escapeHtml(c.content)}</span></div>`).join('')}</div>`
+          ? `<div class="attachments"><div style="font-weight:bold;margin-bottom:6px;">评论：</div>${advice.comments.map(c => {
+              const d = c.date ? new Date(c.date) : null;
+              const dateStr = d && !isNaN(d) ? `${d.getFullYear()}年${(d.getMonth()+1).toString().padStart(2,'0')}月${d.getDate().toString().padStart(2,'0')}日 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}` : '';
+              return `<div style="margin:4px 0;"><span style="color:#555;margin-right:6px;">${escapeHtml(c.author || '匿名')}</span>${dateStr ? `<span style="color:#888;font-size:0.85rem;margin-right:6px;">${dateStr}</span>` : ''}<span>${escapeHtml(c.content)}</span></div>`;
+            }).join('')}</div>`
           : '';
 
         const commentForm = `<div class="comment-box" onclick="event.stopPropagation();">
-          <div style="font-weight:bold;margin-bottom:8px;">我要评论：</div>
-          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
+          <div style="font-weight:bold;margin-bottom:4px;">我要评论：</div>
+          <div style="margin-bottom:4px;" onclick="event.stopPropagation();">
             <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" style="width:100%; max-width: 360px;" />
           </div>
-          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
+          <div style="margin-bottom:4px;" onclick="event.stopPropagation();">
             <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容" style="width:100%;"></textarea>
           </div>
-          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
+          <div onclick="event.stopPropagation();">
             <button class="comment-submit-btn" onclick="event.stopPropagation(); submitComment('${advice.id}')">提交</button>
           </div>
           <div id="c-msg-${advice.id}" style="font-size:0.9rem;color:#666;"></div>
