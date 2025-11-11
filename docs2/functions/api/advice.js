@@ -26,8 +26,8 @@ export async function onRequest(context) {
     });
   }
 
-  // 检查管理员权限（对于非 GET 请求）
-  if (method !== 'GET' && method !== 'HEAD') {
+  // 检查管理员权限（对于 PUT 和 DELETE 请求，POST 允许公开提交）
+  if (method === 'PUT' || method === 'DELETE') {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: '未授权访问' }), {
