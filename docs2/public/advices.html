@@ -550,7 +550,7 @@
         const repliesHtml = Array.isArray(advice.replies) && advice.replies.length > 0
           ? `<div class="attachments" style="border-top:none;margin-top:8px;padding-top:0;">${advice.replies.map(r => {
               const d = r.date ? new Date(r.date) : null;
-              const dateStr = d && !isNaN(d) ? \`\${d.getFullYear()}年\${(d.getMonth()+1).toString().padStart(2,'0')}月\${d.getDate().toString().padStart(2,'0')}日\` : '';
+              const dateStr = d && !isNaN(d) ? `${d.getFullYear()}年${(d.getMonth()+1).toString().padStart(2,'0')}月${d.getDate().toString().padStart(2,'0')}日` : '';
               return `<div style="margin:6px 0;">
                 <span style="color:#d00;font-weight:bold;margin-right:6px;">业委会回复</span>
                 ${dateStr ? `<span style="color:#888;font-size:0.85rem;margin-right:6px;">${dateStr}</span>` : ''}
