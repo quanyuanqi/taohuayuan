@@ -1,224 +1,555 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>桃花源</title>
+  <title>小区建言献策</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
-      font-family: system-ui, sans-serif;
-      margin: 20px;
-      background: #f8f9fa;
+      font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #f8f9fa;
       color: #333;
-      position: relative; /* 为左上角链接定位 */
+      line-height: 1.8;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative;
     }
 
     /* 页面左上角标题 */
     .page-title {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 2.0rem; /* 增大字体 */
+      top: 20px;
+      left: 20px;
+      font-size: 2.0rem;
       font-weight: bold;
       color: #0056b3;
       text-decoration: none;
     }
 
-    h1 {
+    /* 自定义多行标题样式 */
+    .title-container {
       text-align: center;
-      margin-top: 80px; /* 避免与左上角标题重叠 */
-    }
-    form {
+      margin: 60px auto 24px;
       max-width: 600px;
-      margin: 0 auto 40px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    input, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    button {
-      background: #0078f2;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #005ec2;
-    }
-    .posts {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    .post {
-      background: #fff;
-      padding: 15px 20px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      cursor: pointer;
-    }
-    .post:hover {
-      background-color: #f9f9f9;
-    }
-    .post h3 {
-      margin-top: 0;
+    .title-main {
+      font-size: 1.8rem;
+      color: #0056b3;
+      font-weight: bold;
       margin-bottom: 8px;
-      color: #0078f2;
     }
-    .post small {
+    .title-sub {
+      font-size: 1.3rem;
+      color: #333;
+      font-weight: normal;
+      margin-bottom: 4px;
+    }
+    .title-tag {
+      font-size: 1.0rem;
+      color: #666;
+      font-weight: normal;
+    }
+
+    /* 表单样式 */
+    .form-container {
+      max-width: 600px;
+      margin: 0 auto 30px;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #0077cc;
+    }
+
+    button {
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #0066b3;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .attachments {
+      margin-top: 15px;
+    }
+
+    .attachment-list {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .attachment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .error {
+      color: #dc3545;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .success {
+      color: #28a745;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* 公告列表样式 */
+    .advice-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+
+    .advice-item {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .advice-title {
+      padding: 16px 20px;
+      font-size: 1.05rem;
+      color: #0077cc;
+      text-decoration: none;
+      display: block;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .advice-title:hover {
+      background-color: #f0f5ff;
+      transform: translateY(-1px);
+    }
+
+    .advice-title:active {
+      background-color: #e6f0ff;
+    }
+
+    .advice-meta {
+      padding: 0 20px 8px;
+      font-size: 0.85rem;
       color: #888;
     }
-    .post-content {
-      max-height: 140px; /* 调整默认高度以适应60字 */
-      overflow-y: auto;
-      transition: max-height 0.3s ease;
+
+    .advice-content {
+      padding: 0 20px 16px;
+      font-size: 0.98rem;
+      color: #333;
+      line-height: 1.7;
+      white-space: pre-wrap;
     }
-    .post-content.full {
-      max-height: none; /* 展开后不限制高度 */
+
+    .advice-content.preview {
+      display: block;
     }
-    .hint {
-      position: absolute;
-      color: #bbb;
+
+    .advice-content.full {
+      display: block;
+    }
+
+    .attachments {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      color: #666;
       font-size: 0.9rem;
-      pointer-events: none;
-      top: 12px;
-      left: 14px;
     }
-    .textarea-container {
-      position: relative;
+
+    .attachment-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      background: #0077cc;
+      border-radius: 2px;
+      text-align: center;
+      line-height: 16px;
+      color: white;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .attachment-download-btn {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.2s;
+    }
+
+    .attachment-download-btn:hover {
+      background-color: #218838;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+      .page-title {
+        font-size: 1.8rem;
+        top: 15px;
+        left: 15px;
+      }
+      .title-main {
+        font-size: 1.6rem;
+      }
+      .title-sub {
+        font-size: 1.2rem;
+      }
+      .title-tag {
+        font-size: 0.95rem;
+      }
+      .advice-title {
+        font-size: 1.0rem;
+        padding: 14px 16px;
+      }
+      .advice-content {
+        font-size: 0.95rem;
+        padding: 0 16px 14px;
+      }
+      .advice-list {
+        gap: 12px;
+      }
+      body {
+        padding: 15px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- 左上角“桃花源”标题（带链接） -->
+  <!-- 左上角"桃花源"标题（带链接） -->
   <a href="https://www.taohuayuan.org.cn" target="_blank" class="page-title">桃花源</a>
 
-  <h1>小区建言献策</h1>
-  <form id="adviceForm">
-    <input type="text" id="title" name="title" placeholder="标题 (30字以内)" maxlength="100" required />
-    <div class="textarea-container">
-      <span class="hint">内容（2000字以内）</span>
-      <textarea id="content" name="content" rows="5" maxlength="1000" required></textarea>
-    </div>
-    <button type="submit">提交</button>
-    <p id="msg"></p>
-  </form>
+  <!-- 页面主标题 -->
+  <div class="title-container">
+    <div class="title-main">建言献策</div>
+    <div class="title-sub">小区业委会</div>
+    <div class="title-tag">持续更新</div>
+  </div>
 
-  <div class="posts" id="approvedPosts"></div>
+  <!-- 提交表单 -->
+  <div class="form-container">
+    <h3 style="margin-bottom: 20px;">提交建言</h3>
+    <form id="adviceForm">
+      <div class="form-group">
+        <label for="advice-author">网名：</label>
+        <input type="text" id="advice-author" name="author" placeholder="请输入您的网名（可选）" maxlength="50" />
+      </div>
+      <div class="form-group">
+        <label for="advice-title">标题：</label>
+        <input type="text" id="advice-title" name="title" placeholder="请输入标题" maxlength="100" required />
+      </div>
+      <div class="form-group">
+        <label for="advice-content">内容：</label>
+        <textarea id="advice-content" name="content" rows="6" placeholder="请输入内容，支持超链接" maxlength="2000" required></textarea>
+      </div>
+      <div class="form-group attachments">
+        <label for="advice-attachments">附件（图片/文档）：</label>
+        <input type="file" id="advice-attachments" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.xls,.xlsx" />
+        <div id="attachment-preview" class="attachment-list"></div>
+      </div>
+      <button type="submit" id="submit-btn">提交</button>
+      <div id="submit-message"></div>
+    </form>
+  </div>
+
+  <!-- 建言列表 -->
+  <div class="advice-list" id="advice-list">
+    <p style="text-align: center; color: #666;">正在加载建言...</p>
+  </div>
 
   <script>
-    const form = document.getElementById("adviceForm");
-    const msg = document.getElementById("msg");
-    const postsDiv = document.getElementById("approvedPosts");
+    // DOM 元素
+    const form = document.getElementById('adviceForm');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitMessage = document.getElementById('submit-message');
+    const adviceAuthor = document.getElementById('advice-author');
+    const adviceTitle = document.getElementById('advice-title');
+    const adviceContent = document.getElementById('advice-content');
+    const adviceAttachments = document.getElementById('advice-attachments');
+    const attachmentPreview = document.getElementById('attachment-preview');
+    const adviceList = document.getElementById('advice-list');
 
-    form.addEventListener("submit", async (e) => {
+    // 附件预览
+    adviceAttachments.addEventListener('change', () => {
+      const files = Array.from(adviceAttachments.files);
+      attachmentPreview.innerHTML = files.map(file => `
+        <div class="attachment-item">
+          <span>${escapeHtml(file.name)}</span>
+          <span>${(file.size / 1024).toFixed(1)} KB</span>
+        </div>
+      `).join('');
+    });
+
+    // 提交表单
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = "正在提交...";
-      const title = form.title.value.trim();
-      const content = form.content.value.trim();
+      submitMessage.innerHTML = '<div style="text-align: center; color: #666;">正在提交...</div>';
+      
+      const author = adviceAuthor.value.trim();
+      const title = adviceTitle.value.trim();
+      const content = adviceContent.value.trim();
+      const files = Array.from(adviceAttachments.files);
 
       if (!title || !content) {
-        msg.textContent = "请填写完整内容";
+        submitMessage.innerHTML = '<div class="error">标题和内容不能为空</div>';
         return;
       }
 
+      if (files.length > 0) {
+        // 检查文件类型
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        
+        for (const file of files) {
+          if (!allowedTypes.includes(file.type) && file.type !== '') {
+            submitMessage.innerHTML = `<div class="error">文件类型不支持：${escapeHtml(file.name)}</div>`;
+            return;
+          }
+        }
+      }
+
       try {
-        const res = await fetch("/api/post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, content }),
+        submitBtn.disabled = true;
+        submitBtn.textContent = '提交中...';
+
+        // 准备提交数据
+        const adviceData = {
+          title,
+          content,
+          author: author || '匿名',
+          attachments: []
+        };
+
+        // 如果有附件，上传到七牛云
+        if (files.length > 0) {
+          const uploadPromises = files.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('key', `advice-attachments/${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`);
+
+            // 使用公开上传端点
+            const uploadResponse = await fetch('/api/upload-advice', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!uploadResponse.ok) {
+              const error = await uploadResponse.json();
+              throw new Error(error.error || '附件上传失败');
+            }
+
+            const uploadData = await uploadResponse.json();
+            
+            // 直接上传到七牛云
+            const directUploadFormData = new FormData();
+            directUploadFormData.append('token', uploadData.uploadToken);
+            directUploadFormData.append('key', uploadData.key);
+            let uploadMime = file.type || '';
+            if (!uploadMime && /\.txt$/i.test(file.name)) {
+              uploadMime = 'text/plain; charset=utf-8';
+            }
+            if (uploadMime) {
+              directUploadFormData.append('mimeType', uploadMime.includes('text/plain') && !uploadMime.includes('charset') ? 'text/plain; charset=utf-8' : uploadMime);
+            }
+            directUploadFormData.append('file', file);
+
+            const directUploadResponse = await fetch('https://up-z2.qiniup.com/', {
+              method: 'POST',
+              body: directUploadFormData
+            });
+
+            if (!directUploadResponse.ok) {
+              const errorText = await directUploadResponse.text();
+              console.error('Direct upload failed:', errorText);
+              throw new Error(`附件上传失败: ${errorText}`);
+            }
+
+            return {
+              name: file.name,
+              url: uploadData.url,
+              size: file.size
+            };
+          });
+
+          adviceData.attachments = await Promise.all(uploadPromises);
+        }
+
+        // 提交建言
+        const response = await fetch('/api/advice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(adviceData)
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Unknown error");
-        msg.textContent = "提交成功！请等待网站处理后显示，一般30分钟左右。";
-        form.reset();
+        if (response.ok) {
+          submitMessage.innerHTML = '<div class="success">提交成功！请等待审核后显示，一般30分钟左右。</div>';
+          form.reset();
+          attachmentPreview.innerHTML = '';
+        } else {
+          const error = await response.json();
+          throw new Error(error.error || '提交失败');
+        }
       } catch (err) {
-        console.error("Submit error:", err);
-        msg.textContent = "Error: " + err.message;
+        console.error('Submit error:', err);
+        submitMessage.innerHTML = `<div class="error">提交失败：${err.message}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交';
       }
     });
 
-    async function loadApproved() {
-      postsDiv.innerHTML = "<p>正在努力展示内容中...</p>";
+    // 加载建言列表
+    async function loadAdvices() {
       try {
-        const res = await fetch("/api/list");
-        const posts = await res.json();
-        if (!Array.isArray(posts) || posts.length === 0) {
-          postsDiv.innerHTML = "<p>暂时没有内容</p>";
-          return;
-        }
-
-        // ✅ Sort by date descending & show only latest 20
-        const sorted = posts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
-
-        postsDiv.innerHTML = sorted.map(p => {
-          // ✅ 存储完整内容到 data-full-content 属性
-          const fullContent = escapeHtml(p.content);
-          const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : ""); // 改为60字
-          // 假设后端返回了唯一 id，如果没有则用索引或时间戳
-          const id = p.id || `post-${Date.now()}-${Math.random()}`;
-          return `
-            <div class="post" onclick="togglePostContent('${id}')">
-              <h3>${escapeHtml(p.title)}</h3>
-              <small>${new Date(p.date).toLocaleString()}</small>
-              <div class="post-content" id="content-${id}" data-full-content="${fullContent}">
-                ${preview}
-              </div>
-            </div>
-          `;
-        }).join("");
+        const response = await fetch('/api/advice');
+        if (!response.ok) throw new Error('加载失败');
+        
+        const advices = await response.json();
+        renderAdvices(advices);
       } catch (err) {
-        console.error("Load error:", err);
-        postsDiv.innerHTML = "<p>展示内容出现错误</p>";
+        console.error('Load error:', err);
+        adviceList.innerHTML = '<p style="text-align: center; color: #666;">加载建言失败</p>';
       }
     }
 
+    // 渲染建言列表
+    function renderAdvices(advices) {
+      if (!advices || advices.length === 0) {
+        adviceList.innerHTML = '<p style="text-align: center; color: #666;">暂无建言</p>';
+        return;
+      }
+
+      // 按时间倒序排列
+      advices.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const html = advices.map(advice => {
+        const preview = advice.content.length > 60 
+          ? advice.content.slice(0, 60) + '...' 
+          : advice.content;
+        
+        // 转义 HTML 并处理超链接
+        const escapedContent = escapeHtml(advice.content);
+        const contentWithLinks = escapedContent.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+        
+        const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+
+        return `<div class="advice-item"><div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(advice.title)}</div><div class="advice-meta">${escapeHtml(advice.author)} · ${new Date(advice.date).toLocaleString('zh-CN')}</div><div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div><div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${renderAttachments(advice.attachments)}</div></div>`;
+      }).join('');
+
+      adviceList.innerHTML = html;
+    }
+
+    // 渲染附件
+    function renderAttachments(attachments) {
+      if (!attachments || attachments.length === 0) return '';
+      
+      return `<div class="attachments"><div style="font-weight: bold; margin-bottom: 8px;">附件：</div>${attachments.map(attachment => {
+        const escapedUrl = attachment.url.replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+        const isWord = /\.(docx?)$/i.test(attachment.name || '');
+        const officeViewer = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(attachment.url)}`;
+        const viewUrl = isWord ? officeViewer : escapedUrl;
+        return `<div class="attachment-item"><a href="${viewUrl}" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #0077cc; text-decoration: none; flex: 1;"><span class="attachment-icon">📁</span><span>${escapeHtml(attachment.name)}</span></a><a href="${escapedUrl}" download="${escapeHtml(attachment.name)}" class="attachment-download-btn">下载</a><span style="color: #999; margin-left: 8px;">(${formatFileSize(attachment.size)})</span></div>`;
+      }).join('')}</div>`;
+    }
+
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // 切换建言内容显示
+    window.toggleAdvice = function(id) {
+      const previewEl = document.getElementById(`content-${id}`);
+      const fullEl = document.getElementById(`full-content-${id}`);
+      
+      if (fullEl.style.display === 'block') {
+        // 收起
+        fullEl.style.display = 'none';
+        previewEl.style.display = 'block';
+      } else {
+        // 展开
+        previewEl.style.display = 'none';
+        fullEl.style.display = 'block';
+      }
+    };
+
+    // 转义 HTML
     function escapeHtml(str) {
+      if (!str) return '';
       return str.replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[c]));
     }
 
-    // ✅ 修正：切换内容显示状态
-    function togglePostContent(id) {
-      console.log("点击了ID:", id); // 🔍 调试：打印点击的ID
-      const contentEl = document.getElementById(`content-${id}`);
-      if (!contentEl) {
-        console.error("找不到内容元素:", `content-${id}`); // 🔍 调试：元素未找到
-        return;
-      }
-
-      const fullContent = contentEl.dataset.fullContent;
-      if (!fullContent) {
-        console.error("找不到完整内容数据:", id); // 🔍 调试：数据未存储
-        return;
-      }
-
-      if (contentEl.classList.contains('full')) {
-        // 收起
-        console.log("收起内容:", id); // 🔍 调试：收起状态
-        contentEl.classList.remove('full');
-        const preview = fullContent.slice(0, 60) + (fullContent.length > 60 ? "..." : ""); // 收起时显示60字
-        contentEl.textContent = preview;
-      } else {
-        // 展开
-        console.log("展开内容:", id); // 🔍 调试：展开状态
-        contentEl.classList.add('full');
-        contentEl.textContent = fullContent;
-      }
-    }
-
-    loadApproved();
+    // 初始化
+    loadAdvices();
   </script>
 </body>
 </html>
