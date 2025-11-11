@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,22 +53,78 @@
     }
     li.post {
       border-bottom: 1px solid #ddd;
-      padding: 10px 0;
+      padding: 15px 0;
+    }
+    li.post:last-child {
+      border-bottom: none;
     }
     li.post strong {
       font-size: 1.1rem;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .post-meta {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .post-content {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    .post-attachments {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .post-attachments a {
+      color: #0077cc;
+      text-decoration: none;
+      margin-right: 10px;
+    }
+    .post-attachments a:hover {
+      text-decoration: underline;
+    }
+    .actions {
+      margin-top: 10px;
     }
     .actions button {
-      margin-left: 10px;
+      margin-right: 10px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+    .btn-approve {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    .btn-approve:hover {
+      background-color: #218838;
+    }
+    .btn-delete {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    .btn-delete:hover {
+      background-color: #c82333;
+    }
+    .status-approved {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .status-pending {
+      color: #ffc107;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Admin Dashboard</h1>
+    <h1>建言献策管理</h1>
 
     <input id="password" type="password" placeholder="Enter admin password">
-    <button onclick="loadAdminPosts()">Load Posts</button>
+    <button onclick="loadAdminPosts()">加载建言</button>
 
     <ul id="adminList"></ul>
   </div>
@@ -77,89 +133,122 @@
     async function loadAdminPosts() {
       const password = document.getElementById('password').value.trim();
       if (!password) {
-        alert('Please enter password.');
+        alert('请输入密码。');
         return;
       }
 
       try {
-        // 🔹 Send password as query param (old style)
-        const res = await fetch(`/api/admin-list?password=${encodeURIComponent(password)}`);
+        // 使用新的 API
+        const res = await fetch(`/api/advice-admin?password=${encodeURIComponent(password)}`);
 
         if (!res.ok) {
           const msg = await res.text();
-          alert('Error: ' + msg);
+          alert('错误: ' + msg);
           return;
         }
 
         const posts = await res.json();
 
-        // 🔹 Sort latest first
+        // 按时间倒序排列
         posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const list = document.getElementById('adminList');
         list.innerHTML = '';
 
         if (posts.length === 0) {
-          list.innerHTML = '<li>No posts yet.</li>';
+          list.innerHTML = '<li>暂无建言。</li>';
           return;
         }
 
         for (const post of posts) {
           const li = document.createElement('li');
           li.className = 'post';
+          
+          const statusClass = post.approved ? 'status-approved' : 'status-pending';
+          const statusText = post.approved ? '✅ 已审核' : '⏳ 待审核';
+          
+          let attachmentsHtml = '';
+          if (post.attachments && post.attachments.length > 0) {
+            attachmentsHtml = '<div class="post-attachments">附件：' + 
+              post.attachments.map(att => 
+                `<a href="${att.url}" target="_blank">${escapeHtml(att.name)}</a>`
+              ).join(' ') + 
+              '</div>';
+          }
+          
           li.innerHTML = `
-            <strong>${escapeHtml(post.title)}</strong> ${post.approved ? '(✅ Approved)' : '(⏳ Pending)'}
+            <strong>${escapeHtml(post.title)}</strong>
+            <div class="post-meta">
+              <span class="${statusClass}">${statusText}</span> | 
+              网名：${escapeHtml(post.author || '匿名')} | 
+              时间：${new Date(post.date).toLocaleString('zh-CN')}
+            </div>
+            <div class="post-content">${escapeHtml(post.content)}</div>
+            ${attachmentsHtml}
             <div class="actions">
-              <button onclick="approve('${post.id}')">Approve</button>
-              <button onclick="del('${post.id}')">Delete</button>
+              ${!post.approved ? `<button class="btn-approve" onclick="approve('${post.id}')">审核通过</button>` : ''}
+              <button class="btn-delete" onclick="del('${post.id}')">删除</button>
             </div>
           `;
           list.appendChild(li);
         }
       } catch (err) {
-        alert('Error fetching posts: ' + err.message);
+        alert('获取建言失败: ' + err.message);
       }
     }
 
     async function approve(id) {
       const password = document.getElementById('password').value.trim();
-      if (!password) return alert('Enter password first');
+      if (!password) return alert('请先输入密码');
 
       try {
-        const res = await fetch('/api/approve', {
+        const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password })
+          body: JSON.stringify({ id, password, action: 'approve' })
         });
 
         const msg = await res.text();
-        alert(msg);
-        loadAdminPosts();
+        if (res.ok) {
+          alert('审核通过');
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + msg);
+        }
       } catch (err) {
-        alert('Error approving post: ' + err.message);
+        alert('审核失败: ' + err.message);
       }
     }
 
     async function del(id) {
       const password = document.getElementById('password').value.trim();
-      if (!password) return alert('Enter password first');
+      if (!password) return alert('请先输入密码');
+
+      if (!confirm('确定要删除这条建言吗？')) {
+        return;
+      }
 
       try {
-        const res = await fetch('/api/delete', {
+        const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password })
+          body: JSON.stringify({ id, password, action: 'delete' })
         });
 
         const msg = await res.text();
-        alert(msg);
-        loadAdminPosts();
+        if (res.ok) {
+          alert('删除成功');
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + msg);
+        }
       } catch (err) {
-        alert('Error deleting post: ' + err.message);
+        alert('删除失败: ' + err.message);
       }
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
