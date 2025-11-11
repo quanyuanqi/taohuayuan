@@ -254,6 +254,49 @@
     }
 
     /* 移动端适配 */
+    .comment-box {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid #e6e6e6;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .comment-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .comment-author-input {
+      flex: 0 0 180px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+    .comment-content-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      min-height: 80px;
+      resize: vertical;
+      background: #fff;
+    }
+    .comment-submit-btn {
+      padding: 10px 14px;
+      background: #0077cc;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .comment-submit-btn:hover {
+      background: #0066b3;
+    }
     @media (max-width: 480px) {
       .page-title {
         font-size: 1.8rem;
@@ -512,11 +555,12 @@
           ? `<div class="attachments"><div style="font-weight:bold;margin-bottom:8px;">评论：</div>${advice.comments.map(c => `<div style="margin:6px 0;"><span style="color:#555;margin-right:6px;">${escapeHtml(c.author || '匿名')}</span><span>${escapeHtml(c.content)}</span></div>`).join('')}</div>`
           : '';
 
-        const commentForm = `<div class="attachments"><div style="font-weight:bold;margin-bottom:8px;">我要评论：</div>
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-            <input type="text" id="c-author-${advice.id}" placeholder="网名（可选）" style="flex:0 0 160px; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-            <input type="text" id="c-content-${advice.id}" placeholder="评论内容" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;" />
-            <button onclick="submitComment('${advice.id}')" style="padding:8px 12px; background:#0077cc; color:#fff; border:none; border-radius:6px; cursor:pointer;">提交</button>
+        const commentForm = `<div class="comment-box" onclick="event.stopPropagation();">
+          <div style="font-weight:bold;margin-bottom:8px;">我要评论：</div>
+          <div class="comment-row" onclick="event.stopPropagation();">
+            <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" />
+            <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容"></textarea>
+            <button class="comment-submit-btn" onclick="event.stopPropagation(); submitComment('${advice.id}')">提交</button>
           </div>
           <div id="c-msg-${advice.id}" style="font-size:0.9rem;color:#666;"></div>
         </div>`;
