@@ -557,9 +557,13 @@
 
         const commentForm = `<div class="comment-box" onclick="event.stopPropagation();">
           <div style="font-weight:bold;margin-bottom:8px;">我要评论：</div>
-          <div class="comment-row" onclick="event.stopPropagation();">
-            <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" />
-            <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容"></textarea>
+          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
+            <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" style="width:100%; max-width: 360px;" />
+          </div>
+          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
+            <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容" style="width:100%;"></textarea>
+          </div>
+          <div style="margin-bottom:8px;" onclick="event.stopPropagation();">
             <button class="comment-submit-btn" onclick="event.stopPropagation(); submitComment('${advice.id}')">提交</button>
           </div>
           <div id="c-msg-${advice.id}" style="font-size:0.9rem;color:#666;"></div>
