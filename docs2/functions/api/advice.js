@@ -63,11 +63,11 @@ export async function onRequest(context) {
   try {
     if (method === 'GET') {
       // 获取所有建言（只返回已审核通过的）
-      const list = await env.ADVICE_KV.list();
+      const list = await env.ADVICES_KV.list();
       const advices = [];
 
       for (const key of list.keys) {
-        const advice = await env.ADVICE_KV.get(key.name, 'json');
+        const advice = await env.ADVICES_KV.get(key.name, 'json');
         if (advice && advice.approved) {
           advices.push({ id: key.name, ...advice });
         }
@@ -118,7 +118,7 @@ export async function onRequest(context) {
         createdAt: Date.now()
       };
 
-      await env.ADVICE_KV.put(newAdvice.id, JSON.stringify(newAdvice));
+      await env.ADVICES_KV.put(newAdvice.id, JSON.stringify(newAdvice));
       
       return new Response(JSON.stringify({ success: true, id: newAdvice.id }), {
         status: 201,
@@ -134,7 +134,7 @@ export async function onRequest(context) {
 
     } else if (method === 'PUT' && adviceId && adviceId !== 'advice') {
       // 更新建言（管理员审核或编辑）
-      const existing = await env.ADVICE_KV.get(adviceId, 'json');
+      const existing = await env.ADVICES_KV.get(adviceId, 'json');
       
       if (!existing) {
         return new Response(JSON.stringify({ error: '建言不存在' }), {
@@ -177,7 +177,7 @@ export async function onRequest(context) {
         updatedAt: Date.now()
       };
 
-      await env.ADVICE_KV.put(adviceId, JSON.stringify(updatedAdvice));
+      await env.ADVICES_KV.put(adviceId, JSON.stringify(updatedAdvice));
       
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -193,7 +193,7 @@ export async function onRequest(context) {
 
     } else if (method === 'DELETE' && adviceId && adviceId !== 'advice') {
       // 删除建言
-      const existing = await env.ADVICE_KV.get(adviceId);
+      const existing = await env.ADVICES_KV.get(adviceId);
       
       if (!existing) {
         return new Response(JSON.stringify({ error: '建言不存在' }), {
@@ -209,7 +209,7 @@ export async function onRequest(context) {
         });
       }
 
-      await env.ADVICE_KV.delete(adviceId);
+      await env.ADVICES_KV.delete(adviceId);
       
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
