@@ -53,6 +53,14 @@
       font-size: 1.0rem;
       color: #666;
       font-weight: normal;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 4px;
+      transition: color 0.2s ease;
+    }
+
+    .title-tag:hover {
+      color: #0056b3;
     }
 
     /* 表单样式 */
@@ -286,13 +294,13 @@
   <!-- 页面主标题 -->
   <div class="title-container">
     <div class="title-main">建言献策</div>
-    <div class="title-sub">让小区更美好！</div>
-    <div class="title-tag">持续更新</div>
+    <div class="title-sub">小区业委会</div>
+    <a class="title-tag" href="bulletin-board.html">业委会公告</a>
   </div>
 
   <!-- 提交表单 -->
   <div class="form-container">
-    <h3 style="margin-bottom: 20px;">提交建言</h3>
+    <h3 style="margin-bottom: 20px;">提交建议</h3>
     <form id="adviceForm">
       <div class="form-group">
         <label for="advice-author">网名：</label>
