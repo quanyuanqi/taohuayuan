@@ -11,11 +11,11 @@ export async function onRequestGet(context) {
   }
 
   try {
-    const list = await env.ADVICE_KV.list();
+    const list = await env.ADVICES_KV.list();
     const advices = [];
 
     for (const key of list.keys) {
-      const advice = await env.ADVICE_KV.get(key.name, 'json');
+      const advice = await env.ADVICES_KV.get(key.name, 'json');
       if (advice) {
         advices.push({ id: key.name, ...advice });
       }
@@ -51,7 +51,7 @@ export async function onRequestPost(context) {
   try {
     if (action === 'approve') {
       // 审核通过
-      const existing = await env.ADVICE_KV.get(id, 'json');
+      const existing = await env.ADVICES_KV.get(id, 'json');
       if (!existing) {
         return new Response('建言不存在', { status: 404 });
       }
@@ -62,11 +62,11 @@ export async function onRequestPost(context) {
         updatedAt: Date.now()
       };
 
-      await env.ADVICE_KV.put(id, JSON.stringify(updated));
+      await env.ADVICES_KV.put(id, JSON.stringify(updated));
       return new Response('审核通过', { status: 200 });
     } else if (action === 'delete') {
       // 删除
-      await env.ADVICE_KV.delete(id);
+      await env.ADVICES_KV.delete(id);
       return new Response('删除成功', { status: 200 });
     } else {
       return new Response('无效操作', { status: 400 });
