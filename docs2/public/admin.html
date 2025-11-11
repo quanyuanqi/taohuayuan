@@ -187,8 +187,16 @@
             ${attachmentsHtml}
             <div class="actions">
               ${!post.approved ? `<button class="btn-approve" onclick="approve('${post.id}')">审核通过</button>` : ''}
-              <button onclick="reply('${post.id}')" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">回复</button>
+              <button onclick="toggleReplyBox('${post.id}')" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">回复</button>
               <button class="btn-delete" onclick="del('${post.id}')">删除</button>
+            </div>
+            <div id="reply-box-${post.id}" style="display:none; margin-top:10px; padding:12px; border:1px solid #e6e6e6; border-radius:8px; background:#fafafa;">
+              <div style="font-weight:bold; margin-bottom:8px;">回复：</div>
+              <textarea id="reply-content-${post.id}" rows="3" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:0.95rem;"></textarea>
+              <div style="margin-top:8px;">
+                <button onclick="submitReply('${post.id}')" style="padding:8px 12px; background:#0077cc; color:#fff; border:none; border-radius:6px; cursor:pointer;">提交回复</button>
+                <span id="reply-msg-${post.id}" style="margin-left:8px; font-size:0.9rem; color:#666;"></span>
+              </div>
             </div>
           `;
           list.appendChild(li);
@@ -198,31 +206,45 @@
       }
     }
 
-    async function reply(id) {
+    function toggleReplyBox(id) {
+      const box = document.getElementById(`reply-box-${id}`);
+      if (!box) return;
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function submitReply(id) {
       const password = document.getElementById('password').value.trim();
       if (!password) return alert('请先输入密码');
-
-      const content = prompt('请输入回复内容：');
-      if (content == null) return; // 取消
-      const replyText = content.trim();
-      if (!replyText) return alert('回复内容不能为空');
-
+      const contentInput = document.getElementById(`reply-content-${id}`);
+      const msgEl = document.getElementById(`reply-msg-${id}`);
+      const replyText = (contentInput?.value || '').trim();
+      if (!replyText) {
+        msgEl.textContent = '回复内容不能为空';
+        msgEl.style.color = '#dc3545';
+        return;
+      }
+      msgEl.textContent = '提交中...';
+      msgEl.style.color = '#666';
       try {
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, password, action: 'reply', reply: replyText })
         });
-
-        const msg = await res.text();
+        const text = await res.text();
         if (res.ok) {
-          alert('回复成功');
+          msgEl.textContent = '回复成功';
+          msgEl.style.color = '#28a745';
+          contentInput.value = '';
+          // 刷新列表以显示最新数据
           loadAdminPosts();
         } else {
-          alert('错误: ' + msg);
+          msgEl.textContent = '错误: ' + text;
+          msgEl.style.color = '#dc3545';
         }
       } catch (err) {
-        alert('回复失败: ' + err.message);
+        msgEl.textContent = '回复失败: ' + err.message;
+        msgEl.style.color = '#dc3545';
       }
     }
 
