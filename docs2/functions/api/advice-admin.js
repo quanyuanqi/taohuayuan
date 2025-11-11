@@ -40,7 +40,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, password, action, reply } = body;
+  const { id, password, action, reply, commentIndex } = body;
 
   // 简单的密码验证
   const adminPassword = env.ADMIN_PASSWORD || 'admin123';
@@ -89,6 +89,20 @@ export async function onRequestPost(context) {
       };
       await env.ADVICES_KV.put(id, JSON.stringify(updated));
       return new Response('回复已保存', { status: 200 });
+    } else if (action === 'deleteComment') {
+      // 删除指定评论
+      const existing = await env.ADVICES_KV.get(id, 'json');
+      if (!existing) {
+        return new Response('建言不存在', { status: 404 });
+      }
+      const comments = Array.isArray(existing.comments) ? existing.comments : [];
+      const idx = Number.isInteger(commentIndex) ? commentIndex : parseInt(commentIndex, 10);
+      if (isNaN(idx) || idx < 0 || idx >= comments.length) {
+        return new Response('无效的评论索引', { status: 400 });
+      }
+      comments.splice(idx, 1);
+      await env.ADVICES_KV.put(id, JSON.stringify({ ...existing, comments, updatedAt: Date.now() }));
+      return new Response('评论已删除', { status: 200 });
     } else {
       return new Response('无效操作', { status: 400 });
     }
