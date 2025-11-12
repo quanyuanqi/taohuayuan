@@ -40,7 +40,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, password, action, reply, commentIndex } = body;
+  const { id, password, action, reply, commentIndex, attachmentIndex } = body;
 
   // 简单的密码验证
   const adminPassword = env.ADMIN_PASSWORD || 'admin123';
@@ -103,6 +103,43 @@ export async function onRequestPost(context) {
       comments.splice(idx, 1);
       await env.ADVICES_KV.put(id, JSON.stringify({ ...existing, comments, updatedAt: Date.now() }));
       return new Response('评论已删除', { status: 200 });
+    } else if (action === 'approveAttachment') {
+      const existing = await env.ADVICES_KV.get(id, 'json');
+      if (!existing) {
+        return new Response('建言不存在', { status: 404 });
+      }
+      const pending = Array.isArray(existing.pendingAttachments) ? existing.pendingAttachments : [];
+      const idx = Number.isInteger(attachmentIndex) ? attachmentIndex : parseInt(attachmentIndex, 10);
+      if (isNaN(idx) || idx < 0 || idx >= pending.length) {
+        return new Response('无效的附件索引', { status: 400 });
+      }
+      const attachments = Array.isArray(existing.attachments) ? existing.attachments : [];
+      const [approvedAttachment] = pending.splice(idx, 1);
+      attachments.push(approvedAttachment);
+      await env.ADVICES_KV.put(id, JSON.stringify({
+        ...existing,
+        attachments,
+        pendingAttachments: pending,
+        updatedAt: Date.now()
+      }));
+      return new Response('附件已通过审核', { status: 200 });
+    } else if (action === 'deletePendingAttachment') {
+      const existing = await env.ADVICES_KV.get(id, 'json');
+      if (!existing) {
+        return new Response('建言不存在', { status: 404 });
+      }
+      const pending = Array.isArray(existing.pendingAttachments) ? existing.pendingAttachments : [];
+      const idx = Number.isInteger(attachmentIndex) ? attachmentIndex : parseInt(attachmentIndex, 10);
+      if (isNaN(idx) || idx < 0 || idx >= pending.length) {
+        return new Response('无效的附件索引', { status: 400 });
+      }
+      pending.splice(idx, 1);
+      await env.ADVICES_KV.put(id, JSON.stringify({
+        ...existing,
+        pendingAttachments: pending,
+        updatedAt: Date.now()
+      }));
+      return new Response('附件已删除', { status: 200 });
     } else {
       return new Response('无效操作', { status: 400 });
     }
