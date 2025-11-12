@@ -575,7 +575,9 @@
         const preview = previewTextRaw.length > 60 ? previewTextRaw.slice(0, 60) + '...' : previewTextRaw;
         
         // 转义 HTML 并处理超链接
-        const contentWithLinks = escapeHtml(description).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+        const contentWithLinks = description
+          ? escapeHtml(description).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')
+          : '（用户未填写事件描述）';
         
         const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
