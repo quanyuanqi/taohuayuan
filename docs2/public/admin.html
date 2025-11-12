@@ -180,7 +180,8 @@
               '</div>';
           }
           
-          const fullText = escapeHtml(post.content || '');
+          const rawDescription = post.description ?? post.content ?? '';
+          const fullText = escapeHtml(rawDescription);
           const previewText = fullText.length > 50 ? fullText.slice(0, 50) + '...' : fullText;
 
           const commentsHtml = Array.isArray(post.comments) && post.comments.length > 0
@@ -199,7 +200,9 @@
             <strong class="admin-title" style="cursor:pointer;" onclick="togglePost('${post.id}')">${escapeHtml(post.title)}</strong>
             <div class="post-meta">
               <span class="${statusClass}">${statusText}</span> | 
-              网名：${escapeHtml(post.author || '匿名')} | 
+              姓名：${escapeHtml(post.name || post.author || '未提供')} | 
+              楼栋号：${escapeHtml(post.building || '未提供')} | 
+              联系方式：${escapeHtml(post.contact || post.title || '未提供')} | 
               时间：${new Date(post.date).toLocaleString('zh-CN')}
             </div>
             <div class="post-content preview" id="content-${post.id}">${previewText}</div>
