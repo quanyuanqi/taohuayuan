@@ -167,10 +167,17 @@
         for (const post of posts) {
           const li = document.createElement('li');
           li.className = 'post';
-          
+
+          console.log('[ADMIN][POST]', {
+            id: post.id,
+            name: post.name,
+            pendingAttachments: Array.isArray(post.pendingAttachments) ? post.pendingAttachments.length : 0,
+            attachments: Array.isArray(post.attachments) ? post.attachments.length : 0
+          });
+
           const statusClass = post.approved ? 'status-approved' : 'status-pending';
           const statusText = post.approved ? '✅ 已审核' : '⏳ 待审核';
-          
+
           const approvedAttachments = Array.isArray(post.attachments) ? post.attachments : [];
           let attachmentsHtml = '';
           if (approvedAttachments.length > 0) {
