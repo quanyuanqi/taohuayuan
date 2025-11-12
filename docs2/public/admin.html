@@ -171,12 +171,27 @@
           const statusClass = post.approved ? 'status-approved' : 'status-pending';
           const statusText = post.approved ? '✅ 已审核' : '⏳ 待审核';
           
+          const approvedAttachments = Array.isArray(post.attachments) ? post.attachments : [];
           let attachmentsHtml = '';
-          if (post.attachments && post.attachments.length > 0) {
-            attachmentsHtml = '<div class="post-attachments">附件：' + 
-              post.attachments.map(att => 
+          if (approvedAttachments.length > 0) {
+            attachmentsHtml = '<div class="post-attachments">已通过附件：' + 
+              approvedAttachments.map(att => 
                 `<a href="${att.url}" target="_blank">${escapeHtml(att.name)}</a>`
               ).join(' ') + 
+              '</div>';
+          }
+
+          const pendingAttachments = Array.isArray(post.pendingAttachments) ? post.pendingAttachments : [];
+          let pendingAttachmentsHtml = '';
+          if (pendingAttachments.length > 0) {
+            pendingAttachmentsHtml = '<div class="post-attachments" style="border:1px solid #ffe58a; background:#fffbe6; padding:10px; border-radius:6px;">待审核附件：' +
+              pendingAttachments.map((att, idx) =>
+                `<div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+                  <a href="${att.url}" target="_blank" style="flex:1;">${escapeHtml(att.name)}</a>
+                  <button class="btn-approve" style="padding:4px 8px; font-size:0.8rem;" onclick="approveAttachment('${post.id}', ${idx})">通过</button>
+                  <button class="btn-delete" style="padding:4px 8px; font-size:0.8rem;" onclick="deletePendingAttachment('${post.id}', ${idx})">删除</button>
+                </div>`
+              ).join('') +
               '</div>';
           }
           
@@ -208,9 +223,9 @@
             <div class="post-content preview" id="content-${post.id}">${previewText}</div>
             <div class="post-content full" id="full-content-${post.id}" style="display:none;">${fullText}</div>
             ${attachmentsHtml}
+            ${pendingAttachmentsHtml}
             ${commentsHtml}
             <div class="actions">
-              ${!post.approved ? `<button class="btn-approve" onclick="approve('${post.id}')">审核通过</button>` : ''}
               <button onclick="toggleReplyBox('${post.id}')" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">回复</button>
               <button class="btn-delete" onclick="del('${post.id}')">删除</button>
             </div>
@@ -308,29 +323,6 @@
       }
     }
 
-    async function approve(id) {
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
-
-      try {
-        const res = await fetch('/api/advice-admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'approve' })
-        });
-
-        const msg = await res.text();
-        if (res.ok) {
-          alert('审核通过');
-          loadAdminPosts();
-        } else {
-          alert('错误: ' + msg);
-        }
-      } catch (err) {
-        alert('审核失败: ' + err.message);
-      }
-    }
-
     async function del(id) {
       const password = document.getElementById('password').value.trim();
       if (!password) return alert('请先输入密码');
@@ -355,6 +347,47 @@
         }
       } catch (err) {
         alert('删除失败: ' + err.message);
+      }
+    }
+
+    async function approveAttachment(id, index) {
+      const password = document.getElementById('password').value.trim();
+      if (!password) return alert('请先输入密码');
+      try {
+        const res = await fetch('/api/advice-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, password, action: 'approveAttachment', attachmentIndex: index })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + text);
+        }
+      } catch (err) {
+        alert('附件审核失败: ' + err.message);
+      }
+    }
+
+    async function deletePendingAttachment(id, index) {
+      const password = document.getElementById('password').value.trim();
+      if (!password) return alert('请先输入密码');
+      if (!confirm('确定删除该附件吗？')) return;
+      try {
+        const res = await fetch('/api/advice-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, password, action: 'deletePendingAttachment', attachmentIndex: index })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + text);
+        }
+      } catch (err) {
+        alert('删除附件失败: ' + err.message);
       }
     }
 
