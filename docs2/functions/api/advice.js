@@ -91,10 +91,42 @@ export async function onRequest(context) {
     } else if (method === 'POST') {
       // 创建新建言（用户提交，默认未审核）
       const body = await request.json();
-      const { title, content, author, attachments = [] } = body;
+      const name = body.name ?? body.author;
+      const building = body.building;
+      const contact = body.contact ?? body.title;
+      const description = body.description ?? body.content ?? '';
+      const attachments = Array.isArray(body.attachments) ? body.attachments : (body.attachments ? [body.attachments] : []);
 
-      if (!title || !content) {
-        return new Response(JSON.stringify({ error: '标题和内容不能为空' }), {
+      if (!name || !name.trim()) {
+        return new Response(JSON.stringify({ error: '姓名不能为空' }), {
+          status: 400,
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+
+      if (!building || !building.trim()) {
+        return new Response(JSON.stringify({ error: '楼栋号不能为空' }), {
+          status: 400,
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+
+      if (!contact || !contact.trim()) {
+        return new Response(JSON.stringify({ error: '联系方式不能为空' }), {
           status: 400,
           headers: { 
             'Content-Type': 'application/json; charset=utf-8',
@@ -109,9 +141,10 @@ export async function onRequest(context) {
 
       const newAdvice = {
         id: `advice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        title,
-        content,
-        author: author || '匿名',
+        name: name.trim(),
+        building: building.trim(),
+        contact: contact.trim(),
+        description: description ? description.trim() : '',
         attachments,
         approved: false, // 默认未审核
         date: new Date().toISOString(),
@@ -151,10 +184,94 @@ export async function onRequest(context) {
       }
 
       const body = await request.json();
-      const { title, content, author, attachments = [], approved } = body;
-      
-      if (title !== undefined && content !== undefined && !title && !content) {
-        return new Response(JSON.stringify({ error: '标题和内容不能为空' }), {
+      const updatedAdvice = { ...existing };
+      let changed = false;
+
+      if (body.name !== undefined) {
+        if (!body.name || !body.name.trim()) {
+          return new Response(JSON.stringify({ error: '姓名不能为空' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+              'X-Content-Type-Options': 'nosniff',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          });
+        }
+        updatedAdvice.name = body.name.trim();
+        changed = true;
+      }
+
+      if (body.building !== undefined) {
+        if (!body.building || !body.building.trim()) {
+          return new Response(JSON.stringify({ error: '楼栋号不能为空' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+              'X-Content-Type-Options': 'nosniff',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          });
+        }
+        updatedAdvice.building = body.building.trim();
+        changed = true;
+      }
+
+      if (body.contact !== undefined) {
+        if (!body.contact || !body.contact.trim()) {
+          return new Response(JSON.stringify({ error: '联系方式不能为空' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+              'X-Content-Type-Options': 'nosniff',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          });
+        }
+        updatedAdvice.contact = body.contact.trim();
+        changed = true;
+      }
+
+      if (body.description !== undefined) {
+        updatedAdvice.description = body.description ? body.description.trim() : '';
+        changed = true;
+      }
+
+      if (body.attachments !== undefined) {
+        updatedAdvice.attachments = Array.isArray(body.attachments) ? body.attachments : [];
+        changed = true;
+      }
+
+      if (body.approved !== undefined) {
+        updatedAdvice.approved = body.approved;
+        changed = true;
+      }
+
+      // 兼容旧字段
+      if (body.title !== undefined) {
+        updatedAdvice.contact = body.title;
+        changed = true;
+      }
+      if (body.content !== undefined) {
+        updatedAdvice.description = body.content;
+        changed = true;
+      }
+      if (body.author !== undefined) {
+        updatedAdvice.name = body.author;
+        changed = true;
+      }
+
+      if (!changed) {
+        return new Response(JSON.stringify({ error: '未提交任何可更新的字段' }), {
           status: 400,
           headers: { 
             'Content-Type': 'application/json; charset=utf-8',
@@ -167,15 +284,7 @@ export async function onRequest(context) {
         });
       }
 
-      const updatedAdvice = {
-        ...existing,
-        ...(title !== undefined && { title }),
-        ...(content !== undefined && { content }),
-        ...(author !== undefined && { author }),
-        ...(attachments !== undefined && { attachments }),
-        ...(approved !== undefined && { approved }),
-        updatedAt: Date.now()
-      };
+      updatedAdvice.updatedAt = Date.now();
 
       await env.ADVICES_KV.put(adviceId, JSON.stringify(updatedAdvice));
       
