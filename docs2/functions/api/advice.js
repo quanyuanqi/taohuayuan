@@ -145,8 +145,8 @@ export async function onRequest(context) {
         building: building.trim(),
         contact: contact.trim(),
         description: description ? description.trim() : '',
-        attachments,
-        approved: false, // 默认未审核
+        attachments: [], // 已审核附件
+        pendingAttachments: attachments, // 待审核附件
         date: new Date().toISOString(),
         createdAt: Date.now()
       };
@@ -251,8 +251,8 @@ export async function onRequest(context) {
         changed = true;
       }
 
-      if (body.approved !== undefined) {
-        updatedAdvice.approved = body.approved;
+      if (body.pendingAttachments !== undefined) {
+        updatedAdvice.pendingAttachments = Array.isArray(body.pendingAttachments) ? body.pendingAttachments : [];
         changed = true;
       }
 
