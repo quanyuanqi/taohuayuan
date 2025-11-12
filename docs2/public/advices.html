@@ -526,6 +526,7 @@
           adviceBuilding.value = '';
           adviceContact.value = '';
           adviceDescription.value = '';
+          loadAdvices();
         } else {
           const error = await response.json();
           throw new Error(error.error || '提交失败');
@@ -581,6 +582,11 @@
         
         const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
+        const pendingAttachments = Array.isArray(advice.pendingAttachments) ? advice.pendingAttachments : [];
+        const pendingNote = pendingAttachments.length > 0
+          ? `<div class="attachments" style="border-color:#ffe58a;background:#fffbe6;"><div style="font-weight:bold;margin-bottom:4px;">附件审核中：</div>${pendingAttachments.map(att => `<div style="margin:4px 0;color:#888;">${escapeHtml(att.name)}</div>`).join('')}</div>`
+          : '';
+
         const repliesHtml = Array.isArray(advice.replies) && advice.replies.length > 0
           ? `<div class="attachments" style="border-top:none;margin-top:8px;padding-top:0;">${advice.replies.map(r => {
               const d = r.date ? new Date(r.date) : null;
@@ -619,7 +625,20 @@
           <div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(displayTitle)}</div>
           <div class="advice-meta">姓名：${escapeHtml(maskName(name))} | 楼栋号：**** | 联系方式：${escapeHtml(maskContact(contact))} | 时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
           <div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div>
-          <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${repliesHtml}${renderAttachments(advice.attachments)}${commentsHtml}${commentForm}</div>
+          <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">
+            <div style="margin-bottom:8px;">
+              <div>姓名：${escapeHtml(maskName(name))}</div>
+              <div>楼栋号：****</div>
+              <div>联系方式：${escapeHtml(maskContact(contact))}</div>
+              <div>提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
+            </div>
+            ${contentWithLinks}
+            ${pendingNote}
+            ${repliesHtml}
+            ${renderAttachments(advice.attachments)}
+            ${commentsHtml}
+            ${commentForm}
+          </div>
         </div>`;
       }).join('');
 
