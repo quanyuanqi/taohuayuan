@@ -336,33 +336,37 @@
 
   <!-- 页面主标题 -->
   <div class="title-container">
-    <div class="title-main">建言献策</div>
+    <div class="title-main">业委会信息收集</div>
     <div class="title-sub">让小区更美好！</div>
     <a class="title-tag" href="bulletin-board.html">点击阅读业委会公告</a>
   </div>
 
   <!-- 提交表单 -->
   <div class="form-container">
-    <h3 style="margin-bottom: 20px;">提交建议</h3>
+    <h3 style="margin-bottom: 20px;">提交信息</h3>
     <form id="adviceForm">
       <div class="form-group">
-        <label for="advice-author">网名：</label>
-        <input type="text" id="advice-author" name="author" placeholder="请输入您的网名（可选）" maxlength="50" />
+        <label for="advice-name">姓名：</label>
+        <input type="text" id="advice-name" name="name" placeholder="请输入您的姓名" maxlength="50" required />
       </div>
       <div class="form-group">
-        <label for="advice-title">标题：</label>
-        <input type="text" id="advice-title" name="title" placeholder="请输入标题" maxlength="100" required />
+        <label for="advice-building">楼栋号：</label>
+        <input type="text" id="advice-building" name="building" placeholder="请输入楼栋号" maxlength="100" required />
       </div>
       <div class="form-group">
-        <label for="advice-content">内容：</label>
-        <textarea id="advice-content" name="content" rows="6" placeholder="请输入内容，支持超链接" maxlength="2000" required></textarea>
+        <label for="advice-contact">联系方式（电话）：</label>
+        <input type="tel" id="advice-contact" name="contact" placeholder="请输入电话号码" maxlength="30" required />
+      </div>
+      <div class="form-group">
+        <label for="advice-description">事件描述（可选）：</label>
+        <textarea id="advice-description" name="description" rows="6" placeholder="请输入事件描述，支持超链接" maxlength="2000"></textarea>
       </div>
       <div class="form-group attachments">
         <label for="advice-attachments">附件（图片/文档）：</label>
         <input type="file" id="advice-attachments" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.xls,.xlsx" />
         <div id="attachment-preview" class="attachment-list"></div>
       </div>
-      <button type="submit" id="submit-btn">提交</button>
+      <button type="submit" id="submit-btn">提交信息</button>
       <div id="submit-message"></div>
     </form>
   </div>
@@ -377,9 +381,10 @@
     const form = document.getElementById('adviceForm');
     const submitBtn = document.getElementById('submit-btn');
     const submitMessage = document.getElementById('submit-message');
-    const adviceAuthor = document.getElementById('advice-author');
-    const adviceTitle = document.getElementById('advice-title');
-    const adviceContent = document.getElementById('advice-content');
+    const adviceName = document.getElementById('advice-name');
+    const adviceBuilding = document.getElementById('advice-building');
+    const adviceContact = document.getElementById('advice-contact');
+    const adviceDescription = document.getElementById('advice-description');
     const adviceAttachments = document.getElementById('advice-attachments');
     const attachmentPreview = document.getElementById('attachment-preview');
     const adviceList = document.getElementById('advice-list');
@@ -400,13 +405,30 @@
       e.preventDefault();
       submitMessage.innerHTML = '<div style="text-align: center; color: #666;">正在提交...</div>';
       
-      const author = adviceAuthor.value.trim();
-      const title = adviceTitle.value.trim();
-      const content = adviceContent.value.trim();
+      const name = adviceName.value.trim();
+      const building = adviceBuilding.value.trim();
+      const contact = adviceContact.value.trim();
+      const description = adviceDescription.value.trim();
       const files = Array.from(adviceAttachments.files);
 
-      if (!title || !content) {
-        submitMessage.innerHTML = '<div class="error">标题和内容不能为空</div>';
+      if (!name) {
+        submitMessage.innerHTML = '<div class="error">姓名不能为空</div>';
+        return;
+      }
+
+      if (!building) {
+        submitMessage.innerHTML = '<div class="error">楼栋号不能为空</div>';
+        return;
+      }
+
+      if (!contact) {
+        submitMessage.innerHTML = '<div class="error">联系方式不能为空</div>';
+        return;
+      }
+
+      const contactDigits = contact.replace(/\D/g, '');
+      if (contactDigits.length < 7) {
+        submitMessage.innerHTML = '<div class="error">请输入有效的电话号码</div>';
         return;
       }
 
@@ -428,9 +450,10 @@
 
         // 准备提交数据
         const adviceData = {
-          title,
-          content,
-          author: author || '匿名',
+          name,
+          building,
+          contact,
+          description,
           attachments: []
         };
 
@@ -499,6 +522,10 @@
           submitMessage.innerHTML = '<div class="success">提交成功！请等待审核后显示，一般30分钟左右。</div>';
           form.reset();
           attachmentPreview.innerHTML = '';
+          adviceName.value = '';
+          adviceBuilding.value = '';
+          adviceContact.value = '';
+          adviceDescription.value = '';
         } else {
           const error = await response.json();
           throw new Error(error.error || '提交失败');
@@ -537,13 +564,18 @@
       advices.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       const html = advices.map(advice => {
-        const preview = advice.content.length > 60 
-          ? advice.content.slice(0, 60) + '...' 
-          : advice.content;
+        const name = advice.name ?? advice.author ?? '匿名';
+        const building = advice.building ?? '';
+        const contact = advice.contact ?? advice.title ?? '';
+        const description = advice.description ?? advice.content ?? '';
+
+        const displayTitle = `${maskName(name)} 的信息`;
+
+        const previewTextRaw = description ? description : '（用户未填写事件描述）';
+        const preview = previewTextRaw.length > 60 ? previewTextRaw.slice(0, 60) + '...' : previewTextRaw;
         
         // 转义 HTML 并处理超链接
-        const escapedContent = escapeHtml(advice.content);
-        const contentWithLinks = escapedContent.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+        const contentWithLinks = escapeHtml(description).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
         
         const previewWithLinks = escapeHtml(preview).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
 
@@ -581,7 +613,12 @@
           <div id="c-msg-${advice.id}" style="font-size:0.85rem;color:#666;margin:2px 0;"></div>
         </div>`;
 
-        return `<div class="advice-item"><div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(advice.title)}</div><div class="advice-meta">${escapeHtml(advice.author)} · ${new Date(advice.date).toLocaleString('zh-CN')}</div><div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div><div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${repliesHtml}${renderAttachments(advice.attachments)}${commentsHtml}${commentForm}</div></div>`;
+        return `<div class="advice-item">
+          <div class="advice-title" onclick="toggleAdvice('${advice.id}')">${escapeHtml(displayTitle)}</div>
+          <div class="advice-meta">姓名：${escapeHtml(maskName(name))} | 楼栋号：**** | 联系方式：${escapeHtml(maskContact(contact))} | 时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
+          <div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div>
+          <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">${contentWithLinks}${repliesHtml}${renderAttachments(advice.attachments)}${commentsHtml}${commentForm}</div>
+        </div>`;
       }).join('');
 
       adviceList.innerHTML = html;
@@ -667,6 +704,21 @@
         msgEl.textContent = `提交失败：${e.message}`;
         msgEl.style.color = '#dc3545';
       }
+    }
+
+    function maskName(name) {
+      if (!name) return '匿名';
+      const trimmed = name.trim();
+      return trimmed.charAt(0) + '****';
+    }
+
+    function maskContact(contact) {
+      if (!contact) return '****';
+      const digits = contact.replace(/\D/g, '');
+      if (digits.length < 7) return contact;
+      const start = digits.slice(0, 3);
+      const end = digits.slice(-4);
+      return `${start}****${end}`;
     }
 
     // 初始化
