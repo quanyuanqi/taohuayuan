@@ -4,7 +4,6 @@ export async function onRequestGet(context) {
   const url = new URL(request.url);
   const password = url.searchParams.get('password');
 
-  // 简单的密码验证（保持与原有 admin.html 兼容）
   const adminPassword = env.ADMIN_PASSWORD || 'admin123';
   if (password !== adminPassword) {
     return new Response('Invalid password', { status: 401 });
@@ -21,7 +20,6 @@ export async function onRequestGet(context) {
       }
     }
 
-    // 按时间倒序排列
     advices.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return new Response(JSON.stringify(advices), {
@@ -29,7 +27,7 @@ export async function onRequestGet(context) {
       headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
   } catch (error) {
-    console.error('[ERROR] Advice admin list error:', error);
+    console.error('[ADVICE-ADMIN][GET] Error', error);
     return new Response(JSON.stringify({ error: '获取失败' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json; charset=utf-8' }
@@ -42,7 +40,6 @@ export async function onRequestPost(context) {
   const body = await request.json();
   const { id, password, action, reply, commentIndex, attachmentIndex } = body;
 
-  // 简单的密码验证
   const adminPassword = env.ADMIN_PASSWORD || 'admin123';
   if (password !== adminPassword) {
     return new Response('Invalid password', { status: 401 });
@@ -50,7 +47,6 @@ export async function onRequestPost(context) {
 
   try {
     if (action === 'approve') {
-      // 审核通过
       const existing = await env.ADVICES_KV.get(id, 'json');
       if (!existing) {
         return new Response('建言不存在', { status: 404 });
@@ -58,18 +54,15 @@ export async function onRequestPost(context) {
 
       const updated = {
         ...existing,
-        approved: true,
         updatedAt: Date.now()
       };
 
       await env.ADVICES_KV.put(id, JSON.stringify(updated));
       return new Response('审核通过', { status: 200 });
     } else if (action === 'delete') {
-      // 删除
       await env.ADVICES_KV.delete(id);
       return new Response('删除成功', { status: 200 });
     } else if (action === 'reply') {
-      // 管理员回复
       const existing = await env.ADVICES_KV.get(id, 'json');
       if (!existing) {
         return new Response('建言不存在', { status: 404 });
@@ -87,10 +80,10 @@ export async function onRequestPost(context) {
         replies,
         updatedAt: Date.now()
       };
+      console.log('[ADVICE-ADMIN][REPLY]', { id, replyLength: replies.length });
       await env.ADVICES_KV.put(id, JSON.stringify(updated));
       return new Response('回复已保存', { status: 200 });
     } else if (action === 'deleteComment') {
-      // 删除指定评论
       const existing = await env.ADVICES_KV.get(id, 'json');
       if (!existing) {
         return new Response('建言不存在', { status: 404 });
@@ -98,6 +91,7 @@ export async function onRequestPost(context) {
       const comments = Array.isArray(existing.comments) ? existing.comments : [];
       const idx = Number.isInteger(commentIndex) ? commentIndex : parseInt(commentIndex, 10);
       if (isNaN(idx) || idx < 0 || idx >= comments.length) {
+        console.warn('[ADVICE-ADMIN][COMMENT] Invalid index', { id, commentIndex });
         return new Response('无效的评论索引', { status: 400 });
       }
       comments.splice(idx, 1);
@@ -111,11 +105,18 @@ export async function onRequestPost(context) {
       const pending = Array.isArray(existing.pendingAttachments) ? existing.pendingAttachments : [];
       const idx = Number.isInteger(attachmentIndex) ? attachmentIndex : parseInt(attachmentIndex, 10);
       if (isNaN(idx) || idx < 0 || idx >= pending.length) {
+        console.warn('[ADVICE-ADMIN][ATTACH] Invalid index (approve)', { id, attachmentIndex, pendingCount: pending.length });
         return new Response('无效的附件索引', { status: 400 });
       }
       const attachments = Array.isArray(existing.attachments) ? existing.attachments : [];
       const [approvedAttachment] = pending.splice(idx, 1);
       attachments.push(approvedAttachment);
+      console.log('[ADVICE-ADMIN][ATTACH] Approve', {
+        id,
+        approved: approvedAttachment.name,
+        remainingPending: pending.length,
+        approvedCount: attachments.length
+      });
       await env.ADVICES_KV.put(id, JSON.stringify({
         ...existing,
         attachments,
@@ -131,9 +132,15 @@ export async function onRequestPost(context) {
       const pending = Array.isArray(existing.pendingAttachments) ? existing.pendingAttachments : [];
       const idx = Number.isInteger(attachmentIndex) ? attachmentIndex : parseInt(attachmentIndex, 10);
       if (isNaN(idx) || idx < 0 || idx >= pending.length) {
+        console.warn('[ADVICE-ADMIN][ATTACH] Invalid index (delete)', { id, attachmentIndex, pendingCount: pending.length });
         return new Response('无效的附件索引', { status: 400 });
       }
-      pending.splice(idx, 1);
+      const removed = pending.splice(idx, 1);
+      console.log('[ADVICE-ADMIN][ATTACH] Delete pending', {
+        id,
+        removed: removed[0]?.name,
+        remainingPending: pending.length
+      });
       await env.ADVICES_KV.put(id, JSON.stringify({
         ...existing,
         pendingAttachments: pending,
@@ -144,7 +151,7 @@ export async function onRequestPost(context) {
       return new Response('无效操作', { status: 400 });
     }
   } catch (error) {
-    console.error('[ERROR] Advice admin action error:', error);
+    console.error('[ADVICE-ADMIN][POST] Error', { action, id, error });
     return new Response('操作失败', { status: 500 });
   }
 }
