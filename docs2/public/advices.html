@@ -360,6 +360,7 @@
       <div class="form-group">
         <label for="advice-description">事件描述（可选）：</label>
         <textarea id="advice-description" name="description" rows="6" placeholder="请输入事件描述，支持超链接" maxlength="2000"></textarea>
+        <div id="description-count" style="text-align: right; color: #666; font-size: 0.85rem; margin-top: 4px;">0/1000 汉字</div>
       </div>
       <div class="form-group attachments">
         <label for="advice-attachments">附件（图片/文档）：</label>
@@ -388,6 +389,19 @@
     const adviceAttachments = document.getElementById('advice-attachments');
     const attachmentPreview = document.getElementById('attachment-preview');
     const adviceList = document.getElementById('advice-list');
+    const descriptionCount = document.getElementById('description-count');
+
+    // 事件描述字数统计
+    adviceDescription.addEventListener('input', () => {
+      const text = adviceDescription.value;
+      const chineseCharCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+      descriptionCount.textContent = `${chineseCharCount}/1000 汉字`;
+      if (chineseCharCount > 1000) {
+        descriptionCount.style.color = '#dc3545';
+      } else {
+        descriptionCount.style.color = '#666';
+      }
+    });
 
     // 附件预览
     adviceAttachments.addEventListener('change', () => {
@@ -427,8 +441,15 @@
       }
 
       const contactDigits = contact.replace(/\D/g, '');
-      if (contactDigits.length < 7) {
-        submitMessage.innerHTML = '<div class="error">请输入有效的电话号码</div>';
+      if (contactDigits.length !== 11) {
+        submitMessage.innerHTML = '<div class="error">电话号码必须是11位数字</div>';
+        return;
+      }
+
+      // 验证事件描述字数（1000个汉字以内）
+      const chineseCharCount = (description.match(/[\u4e00-\u9fa5]/g) || []).length;
+      if (chineseCharCount > 1000) {
+        submitMessage.innerHTML = '<div class="error">事件描述不能超过1000个汉字</div>';
         return;
       }
 
@@ -519,13 +540,15 @@
         });
 
         if (response.ok) {
-          submitMessage.innerHTML = '<div class="success">提交成功！请等待审核后显示，一般30分钟左右。</div>';
+          submitMessage.innerHTML = '<div class="success">提交成功，请稍后查看回复及评论。</div>';
           form.reset();
           attachmentPreview.innerHTML = '';
           adviceName.value = '';
           adviceBuilding.value = '';
           adviceContact.value = '';
           adviceDescription.value = '';
+          descriptionCount.textContent = '0/1000 汉字';
+          descriptionCount.style.color = '#666';
           loadAdvices();
         } else {
           const error = await response.json();
@@ -626,11 +649,11 @@
           <div class="advice-meta">姓名：${escapeHtml(maskName(name))} | 楼栋号：**** | 联系方式：${escapeHtml(maskContact(contact))} | 时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
           <div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div>
           <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">
-            <div style="margin-bottom:8px;">
-              <div>姓名：${escapeHtml(maskName(name))}</div>
-              <div>楼栋号：****</div>
-              <div>联系方式：${escapeHtml(maskContact(contact))}</div>
-              <div>提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
+            <div style="margin-bottom:8px; line-height:1.6;">
+              <div style="margin:0;">姓名：${escapeHtml(maskName(name))}</div>
+              <div style="margin:0;">楼栋号：****</div>
+              <div style="margin:0;">联系方式：${escapeHtml(maskContact(contact))}</div>
+              <div style="margin:0 0 8px 0;">提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
             </div>
             ${contentWithLinks}
             ${pendingNote}
