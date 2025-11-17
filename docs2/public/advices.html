@@ -77,6 +77,12 @@
       margin-bottom: 20px;
     }
 
+    .anonymous-option {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
     label {
       display: block;
       margin-bottom: 8px;
@@ -297,6 +303,11 @@
     .comment-submit-btn:hover {
       background: #0066b3;
     }
+
+    .readonly-input {
+      background-color: #f1f1f1;
+      color: #999;
+    }
     @media (max-width: 480px) {
       .page-title {
         font-size: 1.8rem;
@@ -345,6 +356,12 @@
   <div class="form-container">
     <h3 style="margin-bottom: 20px;">提交信息</h3>
     <form id="adviceForm">
+      <div class="anonymous-option">
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="anonymous-checkbox" />
+          <span>我要匿名提交信息</span>
+        </label>
+      </div>
       <div class="form-group">
         <label for="advice-name">姓名：</label>
         <input type="text" id="advice-name" name="name" placeholder="请输入您的姓名" maxlength="50" required />
@@ -390,6 +407,7 @@
     const attachmentPreview = document.getElementById('attachment-preview');
     const adviceList = document.getElementById('advice-list');
     const descriptionCount = document.getElementById('description-count');
+    const anonymousCheckbox = document.getElementById('anonymous-checkbox');
 
     // 事件描述字数统计
     adviceDescription.addEventListener('input', () => {
@@ -402,6 +420,11 @@
         descriptionCount.style.color = '#666';
       }
     });
+    adviceDescription.dispatchEvent(new Event('input'));
+
+    // 匿名选项
+    anonymousCheckbox.addEventListener('change', handleAnonymousToggle);
+    handleAnonymousToggle();
 
     // 附件预览
     adviceAttachments.addEventListener('change', () => {
@@ -414,36 +437,51 @@
       `).join('');
     });
 
+    function handleAnonymousToggle() {
+      const isAnon = anonymousCheckbox.checked;
+      [adviceName, adviceBuilding, adviceContact].forEach(input => {
+        input.disabled = isAnon;
+        input.classList.toggle('readonly-input', isAnon);
+        input.required = !isAnon;
+        if (isAnon) {
+          input.value = '';
+        }
+      });
+    }
+
     // 提交表单
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitMessage.innerHTML = '<div style="text-align: center; color: #666;">正在提交...</div>';
       
+      const isAnonymous = anonymousCheckbox.checked;
       const name = adviceName.value.trim();
       const building = adviceBuilding.value.trim();
       const contact = adviceContact.value.trim();
       const description = adviceDescription.value.trim();
       const files = Array.from(adviceAttachments.files);
 
-      if (!name) {
-        submitMessage.innerHTML = '<div class="error">姓名不能为空</div>';
-        return;
-      }
+      if (!isAnonymous) {
+        if (!name) {
+          submitMessage.innerHTML = '<div class="error">姓名不能为空</div>';
+          return;
+        }
 
-      if (!building) {
-        submitMessage.innerHTML = '<div class="error">楼栋号不能为空</div>';
-        return;
-      }
+        if (!building) {
+          submitMessage.innerHTML = '<div class="error">楼栋号不能为空</div>';
+          return;
+        }
 
-      if (!contact) {
-        submitMessage.innerHTML = '<div class="error">联系方式不能为空</div>';
-        return;
-      }
+        if (!contact) {
+          submitMessage.innerHTML = '<div class="error">联系方式不能为空</div>';
+          return;
+        }
 
-      const contactDigits = contact.replace(/\D/g, '');
-      if (contactDigits.length !== 11) {
-        submitMessage.innerHTML = '<div class="error">电话号码必须是11位数字</div>';
-        return;
+        const contactDigits = contact.replace(/\D/g, '');
+        if (contactDigits.length !== 11) {
+          submitMessage.innerHTML = '<div class="error">电话号码必须是11位数字</div>';
+          return;
+        }
       }
 
       // 验证事件描述字数（1000个汉字以内）
@@ -470,10 +508,14 @@
         submitBtn.textContent = '提交中...';
 
         // 准备提交数据
+        const finalName = isAnonymous ? '匿名' : name;
+        const finalBuilding = isAnonymous ? '匿名楼栋' : building;
+        const finalContact = isAnonymous ? '00000000000' : contact.replace(/\D/g, '');
+
         const adviceData = {
-          name,
-          building,
-          contact,
+          name: finalName,
+          building: finalBuilding,
+          contact: finalContact,
           description,
           attachments: []
         };
@@ -549,6 +591,8 @@
           adviceDescription.value = '';
           descriptionCount.textContent = '0/1000 汉字';
           descriptionCount.style.color = '#666';
+          anonymousCheckbox.checked = false;
+          handleAnonymousToggle();
           loadAdvices();
         } else {
           const error = await response.json();
