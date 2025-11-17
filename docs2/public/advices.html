@@ -82,6 +82,11 @@
       color: #555;
       margin-bottom: 10px;
     }
+    .anonymous-option label {
+      font-weight: 400;
+      font-size: 0.9rem;
+      color: #555;
+    }
 
     label {
       display: block;
@@ -308,6 +313,9 @@
       background-color: #f1f1f1;
       color: #999;
     }
+    .readonly-label {
+      color: #999!important;
+    }
     @media (max-width: 480px) {
       .page-title {
         font-size: 1.8rem;
@@ -357,21 +365,21 @@
     <h3 style="margin-bottom: 20px;">提交信息</h3>
     <form id="adviceForm">
       <div class="anonymous-option">
-        <label style="display:flex; align-items:center; gap:6px;">
+        <label style="display:flex; align-items:center; gap:4px;">
           <input type="checkbox" id="anonymous-checkbox" />
-          <span>我要匿名提交信息</span>
+          <span>点击勾选小方框，匿名提交信息</span>
         </label>
       </div>
       <div class="form-group">
-        <label for="advice-name">姓名：</label>
+        <label for="advice-name" class="field-label">姓名：</label>
         <input type="text" id="advice-name" name="name" placeholder="请输入您的姓名" maxlength="50" required />
       </div>
       <div class="form-group">
-        <label for="advice-building">楼栋号：</label>
+        <label for="advice-building" class="field-label">楼栋号：</label>
         <input type="text" id="advice-building" name="building" placeholder="请输入楼栋号" maxlength="100" required />
       </div>
       <div class="form-group">
-        <label for="advice-contact">联系方式（电话）：</label>
+        <label for="advice-contact" class="field-label">联系方式（电话）：</label>
         <input type="tel" id="advice-contact" name="contact" placeholder="请输入电话号码" maxlength="30" required />
       </div>
       <div class="form-group">
@@ -408,6 +416,7 @@
     const adviceList = document.getElementById('advice-list');
     const descriptionCount = document.getElementById('description-count');
     const anonymousCheckbox = document.getElementById('anonymous-checkbox');
+    const fieldLabels = document.querySelectorAll('.field-label');
 
     // 事件描述字数统计
     adviceDescription.addEventListener('input', () => {
@@ -446,6 +455,9 @@
         if (isAnon) {
           input.value = '';
         }
+      });
+      fieldLabels.forEach(label => {
+        label.classList.toggle('readonly-label', isAnon);
       });
     }
 
