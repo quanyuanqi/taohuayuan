@@ -22,6 +22,18 @@
             color: #fff;
             font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
         }
+        
+        /* 如果图片加载失败，显示备用背景色 */
+        .csr-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            z-index: -1;
+        }
 
         .csr-overlay {
             width: 100%;
@@ -184,5 +196,28 @@
             </div>
         </div>
     </section>
+    
+    <script>
+        // 检测背景图片是否加载成功
+        (function() {
+            const imgUrl = 'http://7n.xiongwei.net/bulletin-attachments/ocean02.jpg';
+            const img = new Image();
+            
+            img.onload = function() {
+                console.log('背景图片加载成功:', imgUrl);
+            };
+            
+            img.onerror = function() {
+                console.error('背景图片加载失败:', imgUrl);
+                console.log('可能的原因：');
+                console.log('1. 图片 URL 不正确或图片不存在');
+                console.log('2. 服务器不允许跨域访问（CORS 问题）');
+                console.log('3. 网络连接问题');
+                console.log('4. 图片服务器无法访问');
+            };
+            
+            img.src = imgUrl;
+        })();
+    </script>
 </body>
 </html>
