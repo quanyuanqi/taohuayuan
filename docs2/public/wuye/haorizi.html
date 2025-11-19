@@ -352,7 +352,7 @@
         .footer-dropdown-item {
             display: block;
             padding: 12px 20px;
-            color: #999;
+            color: #ccc;
             text-decoration: none;
             font-size: 13px;
             border-bottom: 1px solid #333;
@@ -366,6 +366,14 @@
         .footer-dropdown-item:hover {
             background: #333;
             color: #fff;
+        }
+
+        @media screen and (max-width: 767px) {
+            .footer-dropdown-item {
+                padding: 14px 20px;
+                color: #ddd;
+                font-size: 14px;
+            }
         }
 
         .footer-bottom {
@@ -508,6 +516,28 @@
                 margin-top: 15px;
                 padding-top: 15px;
             }
+
+            .footer-right {
+                text-align: left;
+            }
+
+            .footer-network {
+                display: block;
+                width: 100%;
+            }
+
+            .footer-dropdown {
+                bottom: auto;
+                top: 100%;
+                right: 0;
+                left: 0;
+                margin-bottom: 0;
+                margin-top: 10px;
+                min-width: 100%;
+                width: 100%;
+                background: #333;
+                border: 1px solid #555;
+            }
         }
 
         @media screen and (max-width: 480px) {
@@ -623,10 +653,10 @@
                         <div class="footer-network" id="footerNetwork">
                             友情链接
                             <div class="footer-dropdown">
-                                <a href="https://www.taohuayuan.org.cn/bulletin-board" class="footer-dropdown-item">业委会公告</a>
-                                <a href="https://www.taohuayuan.org.cn/advices" class="footer-dropdown-item">建言献策</a>
-                                <a href="https://www.taohuayuan.org.cn/laws" class="footer-dropdown-item">物业法规</a>
-                                <a href="https://www.taohuayuan.org.cn/news" class="footer-dropdown-item">小区新闻</a>
+                                <a href="#" class="footer-dropdown-item">链接一</a>
+                                <a href="#" class="footer-dropdown-item">链接二</a>
+                                <a href="#" class="footer-dropdown-item">链接三</a>
+                                <a href="#" class="footer-dropdown-item">链接四</a>
                             </div>
                         </div>
                     </div>
@@ -636,7 +666,7 @@
             <!-- 底部信息区域 -->
             <div class="footer-bottom">
                 <div class="footer-copyright">
-                    <p>公益网页制作</p>
+                    <p>公益制作</p>
                 </div>
                 <div class="footer-links">
                     <a href="#">法律声明</a>
