@@ -98,11 +98,18 @@
 }
 
 .anonymous-option label {
-  /* label 里内容左对齐 */
-  text-align: left;
   display: flex;
   align-items: center;
-  gap: 4px;  /* 保持你原来用的间距 */
+  gap: 6px;
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0;
+  padding-left: 0;
+
+  /* <<< 关键部分：禁止换行 */
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 
