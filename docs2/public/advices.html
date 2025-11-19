@@ -336,6 +336,13 @@
       background: #0066b3;
     }
 
+.advice-detail-line {
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+
+    
     .readonly-input {
       background-color: #f1f1f1;
       color: #999;
@@ -733,10 +740,10 @@
           <div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div>
           <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">
             <div style="margin-bottom:8px; line-height:1.6;">
-              <div style="margin:0;">姓名：${escapeHtml(maskName(name))}</div>
-              <div style="margin:0;">楼栋号：****</div>
-              <div style="margin:0;">联系方式：${escapeHtml(maskContact(contact))}</div>
-              <div style="margin:0 0 8px 0;">提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
+              <div class="advice-detail-line">姓名：${escapeHtml(maskName(name))}</div>
+              <div class="advice-detail-line">楼栋号：****</div>
+              <div class="advice-detail-line">联系方式：${escapeHtml(maskContact(contact))}</div>
+              <div class="advice-detail-line">提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
             </div>
             ${contentWithLinks}
             ${pendingNote}
