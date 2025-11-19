@@ -212,21 +212,25 @@
         }
 
         .footer-slogan {
-            color: #fff;
-            font-size: 24px;
+            color: #ff8c00;
+            font-size: 18px;
             font-weight: 400;
             line-height: 1.6;
             margin-bottom: 15px;
         }
 
         .footer-slogan-en {
-            color: #999;
-            font-size: 13px;
+            color: #555;
+            font-size: 20px;
             font-weight: 300;
             line-height: 1.6;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            text-transform: none;
+            letter-spacing: 0.05em;
             margin-top: 10px;
+        }
+
+        .footer-slogan-en .bold-text {
+            font-weight: 700;
         }
 
         .footer-right {
@@ -289,6 +293,68 @@
             color: #999;
             font-size: 13px;
             margin-top: 10px;
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .footer-network:hover {
+            color: #fff;
+        }
+
+        .footer-network::after {
+            content: '▼';
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .footer-network.active::after {
+            transform: rotate(180deg);
+        }
+
+        .footer-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 10px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .footer-network.active .footer-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .footer-dropdown-item {
+            display: block;
+            padding: 12px 20px;
+            color: #999;
+            text-decoration: none;
+            font-size: 13px;
+            border-bottom: 1px solid #333;
+            transition: all 0.2s ease;
+        }
+
+        .footer-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .footer-dropdown-item:hover {
+            background: #333;
+            color: #fff;
         }
 
         .footer-bottom {
@@ -354,7 +420,11 @@
             }
 
             .footer-slogan {
-                font-size: 22px;
+                font-size: 17px;
+            }
+
+            .footer-slogan-en {
+                font-size: 18px;
             }
         }
 
@@ -369,12 +439,12 @@
             }
 
             .footer-slogan {
-                font-size: 18px;
+                font-size: 16px;
                 margin-bottom: 12px;
             }
 
             .footer-slogan-en {
-                font-size: 12px;
+                font-size: 16px;
             }
 
             .footer-follow h4 {
@@ -427,11 +497,11 @@
             }
 
             .footer-slogan {
-                font-size: 16px;
+                font-size: 14px;
             }
 
             .footer-slogan-en {
-                font-size: 11px;
+                font-size: 14px;
             }
 
             .footer-follow h4 {
@@ -494,7 +564,7 @@
                 <!-- 左侧：标语 -->
                 <div class="footer-left">
                     <div class="footer-slogan">让小区因我们更美好</div>
-                    <div class="footer-slogan-en">Make the cummunity a better<br>place for having us in it</div>
+                    <div class="footer-slogan-en"><span class="bold-text">Make the cummunity a better</span><br>place for having us in it</div>
                 </div>
                 
                 <!-- 右侧：关注我们 -->
@@ -524,7 +594,15 @@
                                 </svg>
                             </a>
                         </div>
-                        <div class="footer-network">友情链接</div>
+                        <div class="footer-network" id="footerNetwork">
+                            友情链接
+                            <div class="footer-dropdown">
+                                <a href="#" class="footer-dropdown-item">链接一</a>
+                                <a href="#" class="footer-dropdown-item">链接二</a>
+                                <a href="#" class="footer-dropdown-item">链接三</a>
+                                <a href="#" class="footer-dropdown-item">链接四</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -569,6 +647,34 @@
             };
             
             img.src = imgUrl;
+        })();
+
+        // 友情链接下拉菜单功能
+        (function() {
+            const footerNetwork = document.getElementById('footerNetwork');
+            if (!footerNetwork) return;
+
+            // 点击切换下拉菜单
+            footerNetwork.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+            });
+
+            // 点击页面其他地方关闭下拉菜单
+            document.addEventListener('click', function(e) {
+                if (!footerNetwork.contains(e.target)) {
+                    footerNetwork.classList.remove('active');
+                }
+            });
+
+            // 点击下拉菜单项后关闭菜单
+            const dropdownItems = footerNetwork.querySelectorAll('.footer-dropdown-item');
+            dropdownItems.forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    footerNetwork.classList.remove('active');
+                });
+            });
         })();
     </script>
 </body>
