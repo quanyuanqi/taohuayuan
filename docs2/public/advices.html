@@ -112,7 +112,12 @@
   flex-wrap: nowrap;
 }
 
+.advice-detail-block {
+  margin-bottom: 0 !important;
+  line-height: 1.4 !important;
+}
 
+    
     label {
       display: block;
       margin-bottom: 8px;
@@ -743,7 +748,7 @@
           <div class="advice-meta">姓名：${escapeHtml(maskName(name))} | 楼栋号：**** | 联系方式：${escapeHtml(maskContact(contact))} | 时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
           <div class="advice-content preview" id="content-${advice.id}">${previewWithLinks}</div>
           <div class="advice-content full" id="full-content-${advice.id}" style="display: none;">
-            <div style="margin-bottom:8px; line-height:1.6;">
+            <div class="advice-detail-block">
               <div class="advice-detail-line">姓名：${escapeHtml(maskName(name))}</div>
               <div class="advice-detail-line">楼栋号：****</div>
               <div class="advice-detail-line">联系方式：${escapeHtml(maskContact(contact))}</div>
