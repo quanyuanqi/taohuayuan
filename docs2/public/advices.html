@@ -390,12 +390,16 @@
 
   /* 修复评论区空白过大的问题 */
   .comment-box {
-    margin-top: 8px !important;
-    padding: 8px !important;
+    margin-top: 4px !important;
+    padding: 4px !important;
   }
 
   .comment-box > div {
-    margin: 4px 0 !important;
+    margin: 2px 0 !important;
+  }
+
+  .comment-box > div:first-child {
+    margin-top: 0 !important;
   }
 
   .comment-author-input,
@@ -749,17 +753,17 @@
           : '';
 
         const commentForm = `<div class="comment-box" onclick="event.stopPropagation();">
-          <div style="font-weight:bold;margin:2px 0;">我要评论：</div>
-          <div style="margin:2px 0;" onclick="event.stopPropagation();">
+          <div style="font-weight:bold;">我要评论：</div>
+          <div onclick="event.stopPropagation();">
             <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" style="width:100%; max-width: 360px;" />
           </div>
-          <div style="margin:2px 0;" onclick="event.stopPropagation();">
+          <div onclick="event.stopPropagation();">
             <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容" style="width:100%;"></textarea>
           </div>
-          <div style="margin:2px 0;" onclick="event.stopPropagation();">
+          <div onclick="event.stopPropagation();">
             <button class="comment-submit-btn" onclick="event.stopPropagation(); submitComment('${advice.id}')">提交</button>
           </div>
-          <div id="c-msg-${advice.id}" style="font-size:0.85rem;color:#666;margin:2px 0;"></div>
+          <div id="c-msg-${advice.id}" style="font-size:0.85rem;color:#666;"></div>
         </div>`;
 
         return `<div class="advice-item">
