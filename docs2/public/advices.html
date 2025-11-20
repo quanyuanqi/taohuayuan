@@ -341,15 +341,13 @@
       background: #0066b3;
     }
 
+/* 修复建言详情的行间距（覆盖行内 style） */
 .advice-detail-line {
-  margin: 0;
-  padding: 0;
-  line-height: 1.4;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important; /* 你可加大到1.3/1.4，根据效果微调 */
 }
 
-    .advice-detail-line + .advice-detail-line {
-      margin-top: 2px !important;  /* 控制行与行之间的距离 */
-    }
 
     
     .readonly-input {
