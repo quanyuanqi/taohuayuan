@@ -298,8 +298,8 @@
 
     /* 移动端适配 */
     .comment-box {
-      margin-top: 2px;
-      padding: 6px;
+      margin-top: 0;
+      padding: 4px;
       border: 1px solid #e6e6e6;
       border-radius: 8px;
       background: #fafafa;
@@ -312,7 +312,7 @@
     }
     .comment-author-input {
       flex: 0 0 180px;
-      padding: 10px;
+      padding: 6px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 0.95rem;
@@ -320,16 +320,16 @@
     }
     .comment-content-input {
       flex: 1;
-      padding: 10px;
+      padding: 6px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 0.95rem;
-      min-height: 64px;
+      min-height: 50px;
       resize: vertical;
       background: #fff;
     }
     .comment-submit-btn {
-      padding: 10px 14px;
+      padding: 6px 12px;
       background: #0077cc;
       color: #fff;
       border: none;
@@ -390,25 +390,33 @@
 
   /* 修复评论区空白过大的问题 */
   .comment-box {
-    margin-top: 4px !important;
+    margin-top: 2px !important;
     padding: 4px !important;
   }
 
   .comment-box > div {
-    margin: 2px 0 !important;
+    margin: 1px 0 !important;
+    padding: 0 !important;
   }
 
   .comment-box > div:first-child {
     margin-top: 0 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .comment-box > div:last-child {
+    margin-bottom: 0 !important;
   }
 
   .comment-author-input,
   .comment-content-input {
     margin: 0 !important;
+    padding: 6px !important;
   }
 
   .comment-submit-btn {
     margin: 0 !important;
+    padding: 6px 12px !important;
   }
 
 
