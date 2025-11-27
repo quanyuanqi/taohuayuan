@@ -233,6 +233,7 @@
             ${pendingAttachmentsHtml}
             ${commentsHtml}
             <div class="actions">
+              <button class="btn-approve" onclick="approveContent('${post.id}')" ${post.contentApproved ? 'disabled style="opacity:0.6;"' : ''}>${post.contentApproved ? '内容已通过' : '通过内容'}</button>
               <button onclick="toggleReplyBox('${post.id}')" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">回复</button>
               <button class="btn-delete" onclick="del('${post.id}')">删除</button>
             </div>
@@ -374,6 +375,26 @@
         }
       } catch (err) {
         alert('附件审核失败: ' + err.message);
+      }
+    }
+
+    async function approveContent(id) {
+      const password = document.getElementById('password').value.trim();
+      if (!password) return alert('请先输入密码');
+      try {
+        const res = await fetch('/api/advice-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, password, action: 'approveContent' })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          loadAdminPosts();
+        } else {
+          alert('错误: ' + text);
+        }
+      } catch (err) {
+        alert('内容审核失败: ' + err.message);
       }
     }
 
