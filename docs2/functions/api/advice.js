@@ -65,6 +65,7 @@ export async function onRequest(context) {
         building: building.trim(),
         contact: contact.trim(),
         description: description ? description.trim() : '',
+        contentApproved: false,
         attachments: [],
         pendingAttachments: attachments,
         comments: [],
@@ -109,6 +110,10 @@ export async function onRequest(context) {
       }
       if (body.description !== undefined) {
         updatedAdvice.description = body.description ? body.description.trim() : '';
+        changed = true;
+      }
+      if (body.contentApproved !== undefined) {
+        updatedAdvice.contentApproved = Boolean(body.contentApproved);
         changed = true;
       }
       if (body.attachments !== undefined) {
