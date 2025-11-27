@@ -722,10 +722,13 @@
         const building = advice.building ?? '';
         const contact = advice.contact ?? advice.title ?? '';
         const description = advice.description ?? advice.content ?? '';
+        const contentApproved = advice.contentApproved === undefined ? true : Boolean(advice.contentApproved);
 
         const displayTitle = `${maskName(name)} 的信息`;
 
-        const previewTextRaw = description ? description : '（用户未填写事件描述）';
+        const previewTextRaw = contentApproved
+          ? (description ? description : '（用户未填写事件描述）')
+          : '（内容待审核，审核通过后展示）';
         const preview = previewTextRaw.length > 60 ? previewTextRaw.slice(0, 60) + '...' : previewTextRaw;
         
         // 转义 HTML 并处理超链接
@@ -785,7 +788,9 @@
               <div class="advice-detail-line">联系方式：${escapeHtml(maskContact(contact))}</div>
               <div class="advice-detail-line">提交时间：${new Date(advice.date).toLocaleString('zh-CN')}</div>
             </div>
-            ${contentWithLinks}
+            ${contentApproved
+              ? contentWithLinks
+              : '<div style="margin-top:8px;padding:10px;border:1px dashed #f0ad4e;background:#fff8e5;color:#a56800;border-radius:6px;">内容待审核，管理员通过后即可查看详细描述。</div>'}
             ${pendingNote}
             ${repliesHtml}
             ${renderAttachments(advice.attachments)}
