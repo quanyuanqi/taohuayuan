@@ -97,6 +97,18 @@ export async function onRequestPost(context) {
       comments.splice(idx, 1);
       await env.ADVICES_KV.put(id, JSON.stringify({ ...existing, comments, updatedAt: Date.now() }));
       return new Response('评论已删除', { status: 200 });
+    } else if (action === 'approveContent') {
+      const existing = await env.ADVICES_KV.get(id, 'json');
+      if (!existing) {
+        return new Response('建言不存在', { status: 404 });
+      }
+      await env.ADVICES_KV.put(id, JSON.stringify({
+        ...existing,
+        contentApproved: true,
+        updatedAt: Date.now()
+      }));
+      console.log('[ADVICE-ADMIN][CONTENT] Approved', { id });
+      return new Response('内容已通过审核', { status: 200 });
     } else if (action === 'approveAttachment') {
       const existing = await env.ADVICES_KV.get(id, 'json');
       if (!existing) {
