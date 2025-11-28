@@ -771,9 +771,11 @@
           <div onclick="event.stopPropagation();">
             <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容" style="width:100%;"></textarea>
           </div>
+          <div onclick="event.stopPropagation();" style="margin-top:4px;">
+            <input type="tel" id="c-phone-${advice.id}" class="comment-author-input" placeholder="手机号" style="width:100%; max-width: 360px;" maxlength="11" />
+          </div>
           <div onclick="event.stopPropagation();" style="display:flex; gap:8px; align-items:center; margin-top:4px;">
-            <input type="tel" id="c-phone-${advice.id}" class="comment-author-input" placeholder="手机号" style="flex:1; max-width: 200px;" maxlength="11" />
-            <input type="text" id="c-verify-${advice.id}" class="comment-author-input" placeholder="短信验证码" style="flex:1; max-width: 150px;" maxlength="6" />
+            <input type="text" id="c-verify-${advice.id}" class="comment-author-input" placeholder="短信验证码" style="flex:1; max-width: 200px;" maxlength="6" />
             <button type="button" class="comment-submit-btn" onclick="event.stopPropagation(); sendVerifyCode('${advice.id}')" id="c-send-btn-${advice.id}" style="padding:6px 12px; white-space:nowrap;">发送验证码</button>
           </div>
           <div onclick="event.stopPropagation();" style="font-size:0.75rem; color:#999; margin-top:2px; margin-bottom:4px;">
@@ -864,7 +866,6 @@
       const msgEl = document.getElementById(`c-msg-${id}`);
       const phoneNumber = (phoneInput?.value || '').trim();
 
-      // 验证手机号格式
       const phoneRegex = /^1[3-9]\d{9}$/;
       if (!phoneNumber) {
         msgEl.textContent = '请输入手机号';
@@ -888,7 +889,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'send',
-            phoneNumber: phoneNumber
+            phoneNumber
           })
         });
 
@@ -900,7 +901,6 @@
         msgEl.textContent = '验证码已发送，请查收短信';
         msgEl.style.color = '#28a745';
 
-        // 倒计时60秒
         let countdown = 60;
         const timer = setInterval(() => {
           countdown--;
@@ -912,7 +912,6 @@
             clearInterval(timer);
           }
         }, 1000);
-
       } catch (e) {
         msgEl.textContent = `发送失败：${e.message}`;
         msgEl.style.color = '#dc3545';
@@ -938,13 +937,11 @@
         msgEl.style.color = '#dc3545';
         return;
       }
-
       if (!phoneNumber) {
         msgEl.textContent = '请输入手机号';
         msgEl.style.color = '#dc3545';
         return;
       }
-
       if (!verifyCode) {
         msgEl.textContent = '请输入短信验证码';
         msgEl.style.color = '#dc3545';
@@ -975,7 +972,6 @@
         if (contentInput) contentInput.value = '';
         if (phoneInput) phoneInput.value = '';
         if (verifyInput) verifyInput.value = '';
-        // 重新加载列表以显示新评论
         loadAdvices();
       } catch (e) {
         msgEl.textContent = `提交失败：${e.message}`;
