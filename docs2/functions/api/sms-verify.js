@@ -41,6 +41,8 @@ async function sendVerifyCode(phoneNumber, env) {
   const accessKeySecret = env.ALIYUN_ACCESS_KEY_SECRET;
   const signName = env.ALIYUN_SMS_SIGN_NAME;
   const templateCode = env.ALIYUN_SMS_TEMPLATE_CODE;
+
+  console.log('[SMS-VERIFY] TemplateCode from env:', env.ALIYUN_SMS_TEMPLATE_CODE);
   
   if (!accessKeyId || !accessKeySecret || !signName || !templateCode) {
     throw new Error('短信服务配置不完整');
