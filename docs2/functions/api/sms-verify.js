@@ -42,9 +42,21 @@ async function sendVerifyCode(phoneNumber, env) {
   const signName = env.ALIYUN_SMS_SIGN_NAME;
   const templateCode = env.ALIYUN_SMS_TEMPLATE_CODE;
 
-  console.log('[SMS-VERIFY] TemplateCode from env:', env.ALIYUN_SMS_TEMPLATE_CODE);
+  console.log('[SMS-VERIFY] Config check:', {
+    hasAccessKeyId: !!accessKeyId,
+    hasAccessKeySecret: !!accessKeySecret,
+    signName: signName,
+    templateCode: templateCode,
+    templateCodeLength: templateCode ? templateCode.length : 0
+  });
   
   if (!accessKeyId || !accessKeySecret || !signName || !templateCode) {
+    console.error('[SMS-VERIFY] Missing config:', {
+      accessKeyId: !!accessKeyId,
+      accessKeySecret: !!accessKeySecret,
+      signName: !!signName,
+      templateCode: !!templateCode
+    });
     throw new Error('短信服务配置不完整');
   }
 
@@ -93,6 +105,12 @@ async function sendVerifyCode(phoneNumber, env) {
   });
 
   const result = await response.json();
+  
+  console.log('[SMS-VERIFY] Aliyun API response:', {
+    Code: result.Code,
+    Message: result.Message,
+    RequestId: result.RequestId
+  });
   
   if (result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
