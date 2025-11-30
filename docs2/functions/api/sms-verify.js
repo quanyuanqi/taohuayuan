@@ -13,7 +13,12 @@
 function percentEncode(str) {
   // 阿里云签名算法要求的编码方式
   // 使用标准的 encodeURIComponent，它已经符合 RFC 3986
-  return encodeURIComponent(str);
+  // 此外，阿里云要求将特定的字符替换为其对应的编码形式
+  let encoded = encodeURIComponent(str);
+  encoded = encoded.replace(/\+/g, '%20');
+  encoded = encoded.replace(/\*/g, '%2A');
+  encoded = encoded.replace(/%7E/g, '~');
+  return encoded;
 }
 
 async function signRequest(accessKeyId, accessKeySecret, params) {
@@ -28,12 +33,17 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
       const value = String(params[key]);
       // 对参数值进行URL编码（RFC 3986）
       const encodedValue = percentEncode(value);
-      return `${key}=${encodedValue}`;
+      
+      // 对参数名也需要URL编码
+      const encodedKey = percentEncode(key);
+      
+      return `${encodedKey}=${encodedValue}`;
     })
     .join('&');
 
   // 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
-  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
+  // 重点修正：queryString 内部的参数键和值已经编码，因此不需要再次对整个 queryString 进行编码
+  const stringToSign = `POST&${percentEncode('/')}&${queryString}`;
 
   console.log('[SMS-VERIFY] Sorted keys:', sortedKeys);
   console.log('[SMS-VERIFY] Query string (before encoding):', queryString);
@@ -42,7 +52,8 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(accessKeySecret + '&');
+  // 注意：签名密钥是 AccessKeySecret 加上一个 '&' 字符
+  const keyData = encoder.encode(accessKeySecret + '&'); 
   const messageData = encoder.encode(stringToSign);
   
   const cryptoKey = await crypto.subtle.importKey(
@@ -56,6 +67,7 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   
+  // 签名值也需要进行 URL 编码
   return percentEncode(signatureBase64);
 }
 
@@ -101,6 +113,7 @@ async function sendVerifyCode(phoneNumber, env) {
   // 构建阿里云短信API请求参数
   // 时间戳格式：ISO 8601，例如：2023-11-27T10:30:00Z
   const now = new Date();
+  // 阿里云 API 需要 UTC 时间，且毫秒部分必须去除
   const timestamp = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
   
   const params = {
@@ -122,7 +135,11 @@ async function sendVerifyCode(phoneNumber, env) {
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体（URL编码）
-  const requestBody = new URLSearchParams(params).toString();
+  // 注意：此处使用 URLSearchParams(params).toString() 会对参数进行二次编码（不适用于 Signature 模式）
+  // 必须手动构建请求体，避免对已编码的 Signature 值再次编码。
+  const requestBody = Object.keys(params)
+    .map(key => `${key}=${params[key]}`)
+    .join('&');
   
   console.log('[SMS-VERIFY] Request params (without signature):', {
     AccessKeyId: params.AccessKeyId,
@@ -133,12 +150,14 @@ async function sendVerifyCode(phoneNumber, env) {
     TemplateParam: params.TemplateParam,
     Timestamp: params.Timestamp
   });
+  console.log('[SMS-VERIFY] Request body (full, URL-encoded):', requestBody);
 
   // 发送请求到阿里云
   const response = await fetch('https://dysmsapi.aliyuncs.com/', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
+      // 这里的 Content-Type 必须是 application/x-www-form-urlencoded
+      'Content-Type': 'application/x-www-form-urlencoded' 
     },
     body: requestBody
   });
@@ -292,4 +311,3 @@ export async function onRequestOptions() {
     }
   });
 }
-
