@@ -4,12 +4,18 @@
 /**
  * 阿里云API签名函数
  * 参考：https://help.aliyun.com/document_detail/315526.html
- * 签名算法：
+ * 签名算法（RFC 3986）：
  * 1. 对参数按字典序排序（不包括Signature）
- * 2. 构建查询字符串：key1=value1&key2=value2（值需要URL编码）
- * 3. 构建待签名字符串：METHOD&URL_ENCODED('/')&URL_ENCODED(QUERY_STRING)
+ * 2. 构建查询字符串：key1=encode(value1)&key2=encode(value2)
+ * 3. 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
  * 4. 使用HMAC-SHA1签名
  */
+function percentEncode(str) {
+  // RFC 3986 编码，对特殊字符进行编码
+  return encodeURIComponent(str)
+    .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+}
+
 async function signRequest(accessKeyId, accessKeySecret, params) {
   // 对参数进行排序（不包括 Signature）
   const sortedKeys = Object.keys(params)
@@ -19,17 +25,18 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   // 构建查询字符串（参数值需要URL编码）
   const queryString = sortedKeys
     .map(key => {
-      const value = params[key];
-      // 对参数值进行URL编码
-      const encodedValue = encodeURIComponent(value);
+      const value = String(params[key]);
+      // 对参数值进行URL编码（RFC 3986）
+      const encodedValue = percentEncode(value);
       return `${key}=${encodedValue}`;
     })
     .join('&');
 
-  // 构建待签名字符串：METHOD&URL_ENCODED('/')&URL_ENCODED(QUERY_STRING)
-  const stringToSign = `POST&${encodeURIComponent('/')}&${encodeURIComponent(queryString)}`;
+  // 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
+  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
 
   console.log('[SMS-VERIFY] String to sign:', stringToSign);
+  console.log('[SMS-VERIFY] Query string:', queryString);
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
@@ -47,7 +54,7 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   
-  return encodeURIComponent(signatureBase64);
+  return percentEncode(signatureBase64);
 }
 
 /**
