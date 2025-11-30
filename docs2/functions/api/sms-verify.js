@@ -2,47 +2,47 @@
 // 支持发送验证码和验证验证码
 
 /**
- * 阿里云API签名函数
- * 参考：https://help.aliyun.com/document_detail/315526.html
- * 签名算法（RFC 3986）：
- * 1. 对参数按字典序排序（不包括Signature）
- * 2. 构建查询字符串：key1=encode(value1)&key2=encode(value2)
- * 3. 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
- * 4. 使用HMAC-SHA1签名
+ * 阿里云API签名专用编码函数 (RFC 3986 规范)
  */
 function percentEncode(str) {
-  // 阿里云签名算法要求的编码方式
-  // 使用标准的 encodeURIComponent，它已经符合 RFC 3986
-  // 此外，阿里云要求将特定的字符替换为其对应的编码形式
+  // 1. 使用标准的 encodeURIComponent
   let encoded = encodeURIComponent(str);
+  
+  // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
+  // '+' 替换为 '%20'
   encoded = encoded.replace(/\+/g, '%20');
+  // '*' 替换为 '%2A'
   encoded = encoded.replace(/\*/g, '%2A');
+  // '~' (波浪线) 不进行编码
   encoded = encoded.replace(/%7E/g, '~');
+  
   return encoded;
 }
 
+/**
+ * 阿里云API签名函数
+ */
 async function signRequest(accessKeyId, accessKeySecret, params) {
   // 对参数进行排序（不包括 Signature）
   const sortedKeys = Object.keys(params)
     .filter(key => key !== 'Signature')
     .sort();
   
-  // 构建查询字符串（参数值需要URL编码）
+  // 构建查询字符串：键和值都需要 URL 编码
   const queryString = sortedKeys
     .map(key => {
       const value = String(params[key]);
-      // 对参数值进行URL编码（RFC 3986）
-      const encodedValue = percentEncode(value);
       
-      // 对参数名也需要URL编码
+      // 对参数键和参数值进行 URL 编码
       const encodedKey = percentEncode(key);
+      const encodedValue = percentEncode(value);
       
       return `${encodedKey}=${encodedValue}`;
     })
     .join('&');
 
-  // 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
-  // 重点修正：queryString 内部的参数键和值已经编码，因此不需要再次对整个 queryString 进行编码
+  // 构建待签名字符串：METHOD&encode('/')&QUERY_STRING
+  // 关键修正：queryString 已包含已编码的键值对，无需再次编码
   const stringToSign = `POST&${percentEncode('/')}&${queryString}`;
 
   console.log('[SMS-VERIFY] Sorted keys:', sortedKeys);
@@ -111,7 +111,6 @@ async function sendVerifyCode(phoneNumber, env) {
   }), { expirationTtl: 300 }); // 5分钟TTL
 
   // 构建阿里云短信API请求参数
-  // 时间戳格式：ISO 8601，例如：2023-11-27T10:30:00Z
   const now = new Date();
   // 阿里云 API 需要 UTC 时间，且毫秒部分必须去除
   const timestamp = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -135,8 +134,7 @@ async function sendVerifyCode(phoneNumber, env) {
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体（URL编码）
-  // 注意：此处使用 URLSearchParams(params).toString() 会对参数进行二次编码（不适用于 Signature 模式）
-  // 必须手动构建请求体，避免对已编码的 Signature 值再次编码。
+  // 修正：手动构建请求体，避免对已编码的 Signature 值再次编码。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
     .join('&');
@@ -156,8 +154,7 @@ async function sendVerifyCode(phoneNumber, env) {
   const response = await fetch('https://dysmsapi.aliyuncs.com/', {
     method: 'POST',
     headers: {
-      // 这里的 Content-Type 必须是 application/x-www-form-urlencoded
-      'Content-Type': 'application/x-www-form-urlencoded' 
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: requestBody
   });
