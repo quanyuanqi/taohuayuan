@@ -1,9 +1,7 @@
 // functions/api/sms-verify.js - 阿里云短信认证服务API
-// 修正：专注于解决 HMAC-SHA1 签名不匹配导致的双重编码问题。
 
 /**
  * 阿里云API签名专用编码函数 (RFC 3986 规范)
- * 确保 '+' 被替换为 '%20', '*' 被替换为 '%2A', '~' 不被编码 (即 %7E 替换为 ~)
  */
 function percentEncode(str) {
   // 1. 使用标准的 encodeURIComponent
@@ -40,11 +38,9 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .join('&');
 
   // 构建待签名字符串：METHOD&encode('/')&QUERY_STRING
-  // 关键修正：queryString (包含所有已编码的键值对) 必须直接拼接，不能再次编码
+  // 关键：queryString 必须是未经再次编码的
   const stringToSign = `POST&${percentEncode('/')}&${queryString}`;
 
-  console.log('[SMS-VERIFY] Sorted keys:', sortedKeys);
-  console.log('[SMS-VERIFY] Query string (after encoding):', queryString);
   console.log('[SMS-VERIFY] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
@@ -53,7 +49,6 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   const keyData = encoder.encode(accessKeySecret + '&'); 
   const messageData = encoder.encode(stringToSign);
   
-  // 确保 crypto.subtle 是可用的环境 (例如 Cloudflare Workers)
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     keyData,
@@ -79,28 +74,32 @@ async function sendVerifyCode(phoneNumber, env) {
   const signName = env.ALIYUN_SMS_SIGN_NAME;
   const templateCode = env.ALIYUN_SMS_TEMPLATE_CODE;
 
-  console.log('[SMS-VERIFY] Config check:', {
-    hasAccessKeyId: !!accessKeyId,
-    hasAccessKeySecret: !!accessKeySecret,
-    signName: signName,
-    templateCode: templateCode,
-    templateCodeLength: templateCode ? templateCode.length : 0
-  });
-  
   if (!accessKeyId || !accessKeySecret || !signName || !templateCode) {
-    console.error('[SMS-VERIFY] Missing config:', {
-      accessKeyId: !!accessKeyId,
-      accessKeySecret: !!accessKeySecret,
-      signName: !!signName,
-      templateCode: !!templateCode
-    });
     throw new Error('短信服务配置不完整');
   }
+
+  // === 针对中文签名乱码/二次编码问题的修正 START ===
+  // 假设您的中文签名是 '速通互联验证平台'
+  // 您的环境变量可能没有正确输出 UTF-8 编码，导致后续的 percentEncode 出错。
+  // 我们将尝试使用 unescape 来解决这个问题（在某些环境中有效，用于处理某些编码缺陷）
+  const SIGN_NAME_CHINESE = signName; 
+  // 尝试解码一次，确保它不是已经被环境偷偷编码过的
+  let finalSignName = SIGN_NAME_CHINESE;
+  try {
+     // 如果中文签名被错误地编码成 ISO-8859-1 或其他格式，decodeURIComponent 会报错。
+     // 我们只做一次简单的 try-catch，并使用原始值。
+     finalSignName = decodeURIComponent(SIGN_NAME_CHINESE);
+  } catch(e) {
+     // 如果解码失败，使用原始值
+     finalSignName = SIGN_NAME_CHINESE;
+  }
+  // === 针对中文签名乱码/二次编码问题的修正 END ===
+
 
   // 生成6位随机验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // 将验证码存储到KV，有效期5分钟
+  // KV 存储逻辑...
   const kvKey = `sms-verify:${phoneNumber}`;
   await env.ADVICES_KV.put(kvKey, JSON.stringify({
     code: verifyCode,
@@ -119,9 +118,9 @@ async function sendVerifyCode(phoneNumber, env) {
     Action: 'SendSms',
     Format: 'JSON',
     PhoneNumbers: phoneNumber,
-    SignName: signName,
+    // 使用经过检查的 SignName 值
+    SignName: finalSignName, 
     TemplateCode: templateCode,
-    // TemplateParam 的值是一个 JSON 字符串
     TemplateParam: JSON.stringify({ code: verifyCode }),
     Timestamp: timestamp,
     Version: '2017-05-25',
@@ -131,25 +130,13 @@ async function sendVerifyCode(phoneNumber, env) {
   };
 
   // 添加签名
-  // params.Signature 是一个经过 percentEncode 后的值
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体
-  // 关键修正：手动构建请求体，将所有参数以 key=value&key2=value2 形式拼接。
-  // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
     .join('&');
   
-  console.log('[SMS-VERIFY] Request params (without signature):', {
-    AccessKeyId: params.AccessKeyId,
-    Action: params.Action,
-    PhoneNumbers: params.PhoneNumbers,
-    SignName: params.SignName,
-    TemplateCode: params.TemplateCode,
-    TemplateParam: params.TemplateParam,
-    Timestamp: params.Timestamp
-  });
   console.log('[SMS-VERIFY] Request body (full, URL-encoded):', requestBody);
 
   // 发送请求到阿里云
@@ -162,12 +149,6 @@ async function sendVerifyCode(phoneNumber, env) {
   });
 
   const result = await response.json();
-  
-  console.log('[SMS-VERIFY] Aliyun API response:', {
-    Code: result.Code,
-    Message: result.Message,
-    RequestId: result.RequestId
-  });
   
   if (result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
@@ -227,7 +208,6 @@ export async function onRequestPost(context) {
     }
 
     if (action === 'send') {
-      // 发送验证码
       if (!phoneNumber) {
         return new Response(JSON.stringify({ error: '手机号不能为空' }), {
           status: 400,
@@ -259,7 +239,6 @@ export async function onRequestPost(context) {
       });
 
     } else if (action === 'check') {
-      // 验证验证码
       if (!phoneNumber || !code) {
         return new Response(JSON.stringify({ error: '手机号和验证码不能为空' }), {
           status: 400,
