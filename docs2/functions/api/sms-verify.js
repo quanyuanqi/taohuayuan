@@ -243,8 +243,17 @@ export async function onRequestPost(context) {
     }
 
   } catch (err) {
-    console.error('[SMS-VERIFY] Error:', err);
-    return new Response(JSON.stringify({ error: err.message || '操作失败' }), {
+    console.error('[SMS-VERIFY] Error:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+    
+    // 返回详细的错误信息（便于调试）
+    return new Response(JSON.stringify({ 
+      error: err.message || '操作失败',
+      type: err.name || 'Error'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
