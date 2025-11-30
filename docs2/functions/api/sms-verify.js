@@ -4,6 +4,11 @@
 /**
  * 阿里云API签名函数
  * 参考：https://help.aliyun.com/document_detail/315526.html
+ * 签名算法：
+ * 1. 对参数按字典序排序（不包括Signature）
+ * 2. 构建查询字符串：key1=value1&key2=value2（值需要URL编码）
+ * 3. 构建待签名字符串：METHOD&URL_ENCODED('/')&URL_ENCODED(QUERY_STRING)
+ * 4. 使用HMAC-SHA1签名
  */
 async function signRequest(accessKeyId, accessKeySecret, params) {
   // 对参数进行排序（不包括 Signature）
@@ -11,13 +16,20 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .filter(key => key !== 'Signature')
     .sort();
   
-  // 构建查询字符串（未编码）
+  // 构建查询字符串（参数值需要URL编码）
   const queryString = sortedKeys
-    .map(key => `${key}=${params[key]}`)
+    .map(key => {
+      const value = params[key];
+      // 对参数值进行URL编码
+      const encodedValue = encodeURIComponent(value);
+      return `${key}=${encodedValue}`;
+    })
     .join('&');
 
   // 构建待签名字符串：METHOD&URL_ENCODED('/')&URL_ENCODED(QUERY_STRING)
   const stringToSign = `POST&${encodeURIComponent('/')}&${encodeURIComponent(queryString)}`;
+
+  console.log('[SMS-VERIFY] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
