@@ -1,5 +1,5 @@
 // functions/api/sms-verify.js - 阿里云短信认证服务API
-// 支持发送验证码和验证验证码
+// 修正：专注于解决 HMAC-SHA1 签名不匹配导致的双重编码问题。
 
 /**
  * 阿里云API签名专用编码函数 (RFC 3986 规范)
@@ -10,9 +10,9 @@ function percentEncode(str) {
   let encoded = encodeURIComponent(str);
   
   // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
-  encoded = encoded.replace(/\+/g, '%20');
-  encoded = encoded.replace(/\*/g, '%2A');
-  encoded = encoded.replace(/%7E/g, '~');
+  encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
+  encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
+  encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
   
   return encoded;
 }
@@ -26,7 +26,7 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .filter(key => key !== 'Signature')
     .sort();
   
-  // 构建查询字符串：键和值都需要 URL 编码
+  // 构建查询字符串：键和值都需要 percentEncode 编码
   const queryString = sortedKeys
     .map(key => {
       const value = String(params[key]);
@@ -121,6 +121,7 @@ async function sendVerifyCode(phoneNumber, env) {
     PhoneNumbers: phoneNumber,
     SignName: signName,
     TemplateCode: templateCode,
+    // TemplateParam 的值是一个 JSON 字符串
     TemplateParam: JSON.stringify({ code: verifyCode }),
     Timestamp: timestamp,
     Version: '2017-05-25',
@@ -133,8 +134,8 @@ async function sendVerifyCode(phoneNumber, env) {
   // params.Signature 是一个经过 percentEncode 后的值
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
-  // 构建请求体（URL编码）
-  // 修正：手动构建请求体，将所有参数以 key=value&key2=value2 形式拼接。
+  // 构建请求体
+  // 关键修正：手动构建请求体，将所有参数以 key=value&key2=value2 形式拼接。
   // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
