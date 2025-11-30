@@ -11,9 +11,9 @@
  * 4. 使用HMAC-SHA1签名
  */
 function percentEncode(str) {
-  // RFC 3986 编码，对特殊字符进行编码
-  return encodeURIComponent(str)
-    .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+  // 阿里云签名算法要求的编码方式
+  // 使用标准的 encodeURIComponent，它已经符合 RFC 3986
+  return encodeURIComponent(str);
 }
 
 async function signRequest(accessKeyId, accessKeySecret, params) {
@@ -35,8 +35,10 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   // 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
   const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
 
+  console.log('[SMS-VERIFY] Sorted keys:', sortedKeys);
+  console.log('[SMS-VERIFY] Query string (before encoding):', queryString);
   console.log('[SMS-VERIFY] String to sign:', stringToSign);
-  console.log('[SMS-VERIFY] Query string:', queryString);
+  console.log('[SMS-VERIFY] Expected format: POST&%2F&[encoded query string]');
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
