@@ -3,17 +3,15 @@
 
 /**
  * 阿里云API签名专用编码函数 (RFC 3986 规范)
+ * 确保 '+' 被替换为 '%20', '*' 被替换为 '%2A', '~' 不被编码 (即 %7E 替换为 ~)
  */
 function percentEncode(str) {
   // 1. 使用标准的 encodeURIComponent
   let encoded = encodeURIComponent(str);
   
   // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
-  // '+' 替换为 '%20'
   encoded = encoded.replace(/\+/g, '%20');
-  // '*' 替换为 '%2A'
   encoded = encoded.replace(/\*/g, '%2A');
-  // '~' (波浪线) 不进行编码
   encoded = encoded.replace(/%7E/g, '~');
   
   return encoded;
@@ -42,20 +40,20 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .join('&');
 
   // 构建待签名字符串：METHOD&encode('/')&QUERY_STRING
-  // 关键修正：queryString 已包含已编码的键值对，无需再次编码
+  // 关键修正：queryString (包含所有已编码的键值对) 必须直接拼接，不能再次编码
   const stringToSign = `POST&${percentEncode('/')}&${queryString}`;
 
   console.log('[SMS-VERIFY] Sorted keys:', sortedKeys);
-  console.log('[SMS-VERIFY] Query string (before encoding):', queryString);
+  console.log('[SMS-VERIFY] Query string (after encoding):', queryString);
   console.log('[SMS-VERIFY] String to sign:', stringToSign);
-  console.log('[SMS-VERIFY] Expected format: POST&%2F&[encoded query string]');
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
-  // 注意：签名密钥是 AccessKeySecret 加上一个 '&' 字符
+  // 签名密钥是 AccessKeySecret 加上一个 '&' 字符
   const keyData = encoder.encode(accessKeySecret + '&'); 
   const messageData = encoder.encode(stringToSign);
   
+  // 确保 crypto.subtle 是可用的环境 (例如 Cloudflare Workers)
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     keyData,
@@ -65,9 +63,10 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   );
   
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  // ArrayBuffer 转换为 Base64
   const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   
-  // 签名值也需要进行 URL 编码
+  // 签名值也需要进行 URL 编码 (用于放入请求参数 Signature 中)
   return percentEncode(signatureBase64);
 }
 
@@ -131,10 +130,12 @@ async function sendVerifyCode(phoneNumber, env) {
   };
 
   // 添加签名
+  // params.Signature 是一个经过 percentEncode 后的值
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体（URL编码）
-  // 修正：手动构建请求体，避免对已编码的 Signature 值再次编码。
+  // 修正：手动构建请求体，将所有参数以 key=value&key2=value2 形式拼接。
+  // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
     .join('&');
