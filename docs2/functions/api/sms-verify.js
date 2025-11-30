@@ -3,16 +3,21 @@
 
 /**
  * 阿里云API签名函数
+ * 参考：https://help.aliyun.com/document_detail/315526.html
  */
 async function signRequest(accessKeyId, accessKeySecret, params) {
-  // 对参数进行排序
-  const sortedParams = Object.keys(params)
-    .sort()
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+  // 对参数进行排序（不包括 Signature）
+  const sortedKeys = Object.keys(params)
+    .filter(key => key !== 'Signature')
+    .sort();
+  
+  // 构建查询字符串（未编码）
+  const queryString = sortedKeys
+    .map(key => `${key}=${params[key]}`)
     .join('&');
 
-  // 构建待签名字符串
-  const stringToSign = `POST&${encodeURIComponent('/')}&${encodeURIComponent(sortedParams)}`;
+  // 构建待签名字符串：METHOD&URL_ENCODED('/')&URL_ENCODED(QUERY_STRING)
+  const stringToSign = `POST&${encodeURIComponent('/')}&${encodeURIComponent(queryString)}`;
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
@@ -95,13 +100,26 @@ async function sendVerifyCode(phoneNumber, env) {
   // 添加签名
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
+  // 构建请求体（URL编码）
+  const requestBody = new URLSearchParams(params).toString();
+  
+  console.log('[SMS-VERIFY] Request params (without signature):', {
+    AccessKeyId: params.AccessKeyId,
+    Action: params.Action,
+    PhoneNumbers: params.PhoneNumbers,
+    SignName: params.SignName,
+    TemplateCode: params.TemplateCode,
+    TemplateParam: params.TemplateParam,
+    Timestamp: params.Timestamp
+  });
+
   // 发送请求到阿里云
   const response = await fetch('https://dysmsapi.aliyuncs.com/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams(params).toString()
+    body: requestBody
   });
 
   const result = await response.json();
