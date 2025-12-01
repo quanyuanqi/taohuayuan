@@ -1,4 +1,4 @@
-// functions/api/sms-verify.js - 阿里云短信认证服务API (含SignatureNonce)
+// functions/api/sms-verify.js - 阿里云短信认证服务API (调试版本)
 
 // --- 短信服务配置 ---
 const SERVICE_HOST = 'dysmsapi.aliyuncs.com';
@@ -68,6 +68,16 @@ async function sendVerifyCode(phoneNumber, env) {
     throw new Error('短信服务配置不完整');
   }
 
+  // 调试：记录配置信息（不包含敏感信息）
+  console.log('[SMS] Config Check:', {
+    hasAccessKeyId: !!accessKeyId,
+    hasSignName: !!signName,
+    hasTemplateCode: !!templateCode,
+    signName: signName,
+    templateCode: templateCode,
+    phoneNumber: phoneNumber
+  });
+
   // 生成6位数字验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
@@ -118,7 +128,12 @@ async function sendVerifyCode(phoneNumber, env) {
   const endpoint = `https://${SERVICE_HOST}/`;
 
   console.log('[SMS] Request URL:', endpoint);
-  console.log('[SMS] Request Params:', params);
+  console.log('[SMS] Request Payload:', {
+    phoneNumber,
+    signName,
+    templateCode,
+    verifyCode: '***隐藏实际验证码***' // 隐藏实际验证码
+  });
 
   // 发送请求到阿里云
   const response = await fetch(endpoint, {
@@ -131,12 +146,21 @@ async function sendVerifyCode(phoneNumber, env) {
 
   const result = await response.json();
   
+  console.log('[SMS] API Response:', result);
+  
   if (response.status === 200 && result.Code === 'OK') {
     console.log('[SMS] Send success:', result);
     return { success: true, message: '验证码已发送' };
   } else {
     console.error('[SMS] Send failed:', result);
-    throw new Error(result.Message || result.Code || '发送验证码失败');
+    // 提供更详细的错误信息
+    let errorMessage = result.Message || result.Code || '发送验证码失败';
+    if (result.Code === 'InvalidTemplateCode.NotFound') {
+      errorMessage = '模板CODE未找到，请检查模板CODE是否正确且已审核通过';
+    } else if (result.Code === 'InvalidSignName.NotFound') {
+      errorMessage = '短信签名未找到，请检查签名名称是否正确且已审核通过';
+    }
+    throw new Error(errorMessage);
   }
 }
 
