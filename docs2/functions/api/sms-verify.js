@@ -24,17 +24,6 @@ async function hashSha256(data) {
 }
 
 /**
- * 阿里云API V3 专用编码函数 (RFC 3986 规范)
- */
-function percentEncodeV3(str) {
-    let encoded = encodeURIComponent(str);
-    encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
-    encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
-    encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
-    return encoded;
-}
-
-/**
  * V3 签名日期格式 (YYYYMMDDTHHMMSSZ)
  */
 function formatV3Date(date) {
@@ -54,26 +43,25 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
     const httpMethod = 'POST';
     const canonicalUri = '/';
     
-    // V3: CanonicalQueryString (此 RPC 风格 API 的核心参数在 Body/Header 中，QueryString 为空)
+    // V3: CanonicalQueryString (This API uses JSON body, so query string is empty)
     const canonicalQueryString = '';
     
     // V3: CanonicalBodyHash (SHA256 of the JSON body)
     const bodyString = JSON.stringify(bodyParams);
     const contentHash = await hashSha256(bodyString);
 
-    // V3: CanonicalHeaders (所有参与签名的 Header，必须小写并排序)
+    // V3: CanonicalHeaders
     const headers = {
         'x-acs-action': API_ACTION.toLowerCase(),
         'x-acs-version': API_VERSION.toLowerCase(),
         'x-acs-region-id': REGION_ID.toLowerCase(),
-        // x-acs-date 格式必须为 YYYYMMDDTHHMMSSZ
         'x-acs-date': formatV3Date(date).toLowerCase(), 
         'content-type': 'application/json'.toLowerCase(),
         'host': SERVICE_HOST.toLowerCase(),
         'x-acs-request-id': (Date.now().toString() + Math.random().toString(36).substr(2, 9)).toLowerCase() // Nonce
     };
     
-    // 排序 Header 键
+    // Sort Header keys
     const signedHeadersKeys = Object.keys(headers).sort();
     
     let canonicalHeaders = '';
@@ -107,8 +95,9 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
 
     // V3: Signature (HMAC-SHA256)
     const encoder = new TextEncoder();
-    // 签名密钥是 'ACS3' 加上 AccessKeySecret
-    const keyData = encoder.encode(`ACS3${accessKeySecret}`);
+    
+    // 修正：使用 AccessKeySecret 作为密钥
+    const keyData = encoder.encode(accessKeySecret);
     const messageData = encoder.encode(stringToSign);
     
     const cryptoKey = await crypto.subtle.importKey(
@@ -125,14 +114,14 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
         .join('');
         
     // V3: Authorization Header
-    const authorization = `${SIGNATURE_ALGORITHM} AccessKeyId=${accessKeyId},SignedHeaders=${signedHeaders},Signature=${signatureHex}`;
+    // 关键修正：Credential 必须包含在授权头中
+    const authorization = `${SIGNATURE_ALGORITHM} Credential=${accessKeyId},SignedHeaders=${signedHeaders},Signature=${signatureHex}`;
 
     // 返回最终请求所需的头部和 JSON 请求体
     return {
         headers: {
             ...headers,
             'Authorization': authorization,
-            // 确保 Content-Type 为 JSON
             'Content-Type': 'application/json',
             'Accept': 'application/json' 
         },
