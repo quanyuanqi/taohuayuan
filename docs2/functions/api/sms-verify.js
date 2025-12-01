@@ -24,20 +24,15 @@ async function hashSha256(data) {
 }
 
 /**
- * V3 签名日期格式 (YYYYMMDDTHHMMSSZ)
- * 修正：使用 ISO 字符串并裁剪，确保格式严格正确。
+ * V3 签名日期格式 (YYYY-MM-DDTHH:mm:ssZ) - 修复格式问题
+ * 阿里云要求 ISO 8601 格式的日期字符串
  */
 function formatV3Date(date) {
-    // 1. 获取完整的 ISO 8601 字符串 (e.g., 2025-11-30T20:22:15.123Z)
-    const isoString = date.toISOString(); 
-    
-    // 2. 裁剪掉毫秒 (.123) 和横杠/冒号
-    // 目标格式: YYYYMMDDTHHMMSSZ
-    const formattedDate = isoString
-        .replace(/[-:]/g, '') // 移除横杠和冒号
-        .replace(/\.\d{3}/, ''); // 移除毫秒部分
-        
-    return formattedDate;
+    // 使用 toISOString() 并确保格式为 YYYY-MM-DDTHH:mm:ssZ
+    const isoString = date.toISOString();
+    // 确保格式为: YYYY-MM-DDTHH:mm:ssZ
+    // 例如: 2023-11-30T08:30:00Z
+    return isoString;
 }
 
 /**
@@ -61,7 +56,7 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
         'x-acs-action': API_ACTION.toLowerCase(),
         'x-acs-version': API_VERSION.toLowerCase(),
         'x-acs-region-id': REGION_ID.toLowerCase(),
-        'x-acs-date': formattedDate.toLowerCase(), // 修正：使用严格格式的日期
+        'x-acs-date': formattedDate, // 保持 ISO 格式
         'content-type': 'application/json'.toLowerCase(),
         'host': SERVICE_HOST.toLowerCase(),
         'x-acs-request-id': (Date.now().toString() + Math.random().toString(36).substr(2, 9)).toLowerCase() // Nonce
@@ -93,7 +88,7 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
     
     const stringToSign = [
         SIGNATURE_ALGORITHM,
-        headers['x-acs-date'],
+        headers['x-acs-date'], // 使用 ISO 格式的日期
         canonicalRequestHash
     ].join('\n');
     
