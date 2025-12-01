@@ -1,80 +1,150 @@
-// functions/api/sms-verify.js - 阿里云短信认证服务API
-// 修正：包含针对中文参数双重编码（% -> %25）的修复逻辑，并严格遵守 RFC 3986 规范。
+// functions/api/sms-verify.js - 阿里云短信认证服务API (V3 签名 ACS3-HMAC-SHA256)
+
+// --- V3 签名配置 ---
+const REGION_ID = 'cn-hangzhou'; // V3 签名需要一个 Region ID
+const SERVICE_HOST = 'dysmsapi.aliyuncs.com';
+const API_VERSION = '2017-05-25';
+const API_ACTION = 'SendSms';
+const SIGNATURE_ALGORITHM = 'ACS3-HMAC-SHA256';
+
+// --- V3 签名辅助函数 ---
 
 /**
- * 阿里云API签名专用编码函数 (RFC 3986 规范)
- * 严格执行阿里云要求的编码替换，并包含防止双重编码的修复逻辑。
+ * SHA256 散列函数
  */
-function percentEncode(str) {
-  // 1. 使用标准的 encodeURIComponent 进行编码
-  let encoded = encodeURIComponent(str);
-  
-  // 2. 关键修复：尝试修复双重编码的百分号 (%25 -> %)
-  // 这一步是为了解决在构造 stringToSign 时，% 被再次编码为 %25 的环境问题。
-  // 我们只修复后面跟着两个十六进制字符的 %25
-  encoded = encoded.replace(/%25([0-9A-F]{2})/g, (match, p1) => `%${p1}`);
-  
-  // 3. 替换特定的字符以符合阿里云的 RFC 3986 规范 
-  encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
-  encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
-  encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
-  
-  return encoded;
+async function hashSha256(data) {
+    const encoder = new TextEncoder();
+    const buffer = encoder.encode(data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    
+    // Convert ArrayBuffer to hex string
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 }
 
 /**
- * 阿里云API签名函数
+ * 阿里云API V3 专用编码函数 (RFC 3986 规范)
  */
-async function signRequest(accessKeyId, accessKeySecret, params) {
-  // 对参数进行排序（不包括 Signature）
-  const sortedKeys = Object.keys(params)
-    .filter(key => key !== 'Signature')
-    .sort();
-  
-  // 构建规范化查询字符串 (CanonicalQueryString)
-  const queryString = sortedKeys
-    .map(key => {
-      const value = String(params[key]);
-      
-      // 关键修正：对参数键和参数值都进行 URL 编码 (RFC 3986) 
-      const encodedKey = percentEncode(key);
-      const encodedValue = percentEncode(value);
-      
-      return `${encodedKey}=${encodedValue}`;
-    })
-    .join('&');
-
-  // 构建待签名字符串 (String To Sign)
-  // RPC 风格的 StringToSign 格式为： METHOD&encode('/')&encode(QUERY_STRING)
-  // 关键：对整个 queryString 进行最终编码，同时依赖 percentEncode 函数内部的修复逻辑
-  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
-
-  console.log('[SMS-VERIFY] String to sign:', stringToSign);
-
-  // 使用HMAC-SHA1签名
-  const encoder = new TextEncoder();
-  // 签名密钥是 AccessKeySecret 加上一个 '&' 字符
-  const keyData = encoder.encode(accessKeySecret + '&'); 
-  const messageData = encoder.encode(stringToSign);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign']
-  );
-  
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-  // ArrayBuffer 转换为 Base64
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  
-  // 签名值也需要进行 URL 编码 (用于放入请求参数 Signature 中)
-  return percentEncode(signatureBase64);
+function percentEncodeV3(str) {
+    let encoded = encodeURIComponent(str);
+    encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
+    encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
+    encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
+    return encoded;
 }
 
 /**
- * 发送短信验证码
+ * V3 签名日期格式 (YYYYMMDDTHHMMSSZ)
+ */
+function formatV3Date(date) {
+    const year = date.getUTCFullYear().toString();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    const hour = date.getUTCHours().toString().padStart(2, '0');
+    const minute = date.getUTCMinutes().toString().padStart(2, '0');
+    const second = date.getUTCSeconds().toString().padStart(2, '0');
+    return `${year}${month}${day}T${hour}${minute}${second}Z`;
+}
+
+/**
+ * 阿里云API V3 签名函数 (ACS3-HMAC-SHA256)
+ */
+async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
+    const httpMethod = 'POST';
+    const canonicalUri = '/';
+    
+    // V3: CanonicalQueryString (此 RPC 风格 API 的核心参数在 Body/Header 中，QueryString 为空)
+    const canonicalQueryString = '';
+    
+    // V3: CanonicalBodyHash (SHA256 of the JSON body)
+    const bodyString = JSON.stringify(bodyParams);
+    const contentHash = await hashSha256(bodyString);
+
+    // V3: CanonicalHeaders (所有参与签名的 Header，必须小写并排序)
+    const headers = {
+        'x-acs-action': API_ACTION.toLowerCase(),
+        'x-acs-version': API_VERSION.toLowerCase(),
+        'x-acs-region-id': REGION_ID.toLowerCase(),
+        // x-acs-date 格式必须为 YYYYMMDDTHHMMSSZ
+        'x-acs-date': formatV3Date(date).toLowerCase(), 
+        'content-type': 'application/json'.toLowerCase(),
+        'host': SERVICE_HOST.toLowerCase(),
+        'x-acs-request-id': (Date.now().toString() + Math.random().toString(36).substr(2, 9)).toLowerCase() // Nonce
+    };
+    
+    // 排序 Header 键
+    const signedHeadersKeys = Object.keys(headers).sort();
+    
+    let canonicalHeaders = '';
+    for (const key of signedHeadersKeys) {
+        canonicalHeaders += `${key}:${headers[key]}\n`;
+    }
+    const signedHeaders = signedHeadersKeys.join(';');
+
+    // V3: CanonicalRequest
+    const canonicalRequest = [
+        httpMethod,
+        canonicalUri,
+        canonicalQueryString,
+        canonicalHeaders,
+        signedHeaders,
+        contentHash
+    ].join('\n');
+    
+    console.log('[SMS-V3] Canonical Request:\n', canonicalRequest);
+    
+    // V3: StringToSign
+    const canonicalRequestHash = await hashSha256(canonicalRequest);
+    
+    const stringToSign = [
+        SIGNATURE_ALGORITHM,
+        headers['x-acs-date'],
+        canonicalRequestHash
+    ].join('\n');
+    
+    console.log('[SMS-V3] String To Sign:\n', stringToSign);
+
+    // V3: Signature (HMAC-SHA256)
+    const encoder = new TextEncoder();
+    // 签名密钥是 'ACS3' 加上 AccessKeySecret
+    const keyData = encoder.encode(`ACS3${accessKeySecret}`);
+    const messageData = encoder.encode(stringToSign);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+    const signatureHex = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+        
+    // V3: Authorization Header
+    const authorization = `${SIGNATURE_ALGORITHM} AccessKeyId=${accessKeyId},SignedHeaders=${signedHeaders},Signature=${signatureHex}`;
+
+    // 返回最终请求所需的头部和 JSON 请求体
+    return {
+        headers: {
+            ...headers,
+            'Authorization': authorization,
+            // 确保 Content-Type 为 JSON
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+        },
+        body: bodyString,
+    };
+}
+
+
+// --- 业务函数 ---
+
+/**
+ * 发送短信验证码 (V3 签名)
  */
 async function sendVerifyCode(phoneNumber, env) {
   const accessKeyId = env.ALIYUN_ACCESS_KEY_ID;
@@ -86,66 +156,51 @@ async function sendVerifyCode(phoneNumber, env) {
     throw new Error('短信服务配置不完整');
   }
 
-  // 生成6位随机验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // 将验证码存储到KV，有效期5分钟
+  // KV 存储逻辑...
   const kvKey = `sms-verify:${phoneNumber}`;
   await env.ADVICES_KV.put(kvKey, JSON.stringify({
     code: verifyCode,
     phoneNumber: phoneNumber,
     createdAt: Date.now(),
-    expiresAt: Date.now() + 5 * 60 * 1000 // 5分钟有效期
-  }), { expirationTtl: 300 }); // 5分钟TTL
+    expiresAt: Date.now() + 5 * 60 * 1000
+  }), { expirationTtl: 300 });
 
-  // 构建阿里云短信API请求参数
-  const now = new Date();
-  // 阿里云 API 需要 UTC 时间，且毫秒部分必须去除
-  const timestamp = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
-  
-  const params = {
-    AccessKeyId: accessKeyId,
-    Action: 'SendSms',
-    Format: 'JSON',
-    PhoneNumbers: phoneNumber,
+  // V3 Request Body (业务参数通过 JSON Body 传递)
+  const requestBody = {
     SignName: signName, 
     TemplateCode: templateCode,
+    PhoneNumbers: phoneNumber,
     TemplateParam: JSON.stringify({ code: verifyCode }),
-    Timestamp: timestamp,
-    Version: '2017-05-25',
-    SignatureMethod: 'HMAC-SHA1',
-    SignatureVersion: '1.0',
-    SignatureNonce: Date.now().toString() + Math.random().toString(36).substr(2, 9)
   };
-
-  // 添加签名
-  params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
-
-  // 构建请求体
-  // 关键修正：由于 Cloudflare Workers 默认的 URLSearchParams 可能存在编码问题，
-  // 我们手动构造请求体，将所有参数以 key=value&key2=value2 形式拼接。
-  // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
-  const requestBody = Object.keys(params)
-    .map(key => `${key}=${params[key]}`)
-    .join('&');
   
-  console.log('[SMS-VERIFY] Request body (full, URL-encoded):', requestBody);
+  const now = new Date();
+  
+  // 签名 V3 请求
+  const signedRequest = await signV3Request(accessKeyId, accessKeySecret, requestBody, now);
+  
+  // V3 的 RPC 风格 API 通常将 Action 和 Version 放在 Query String 中，以保持兼容性
+  const endpoint = `https://${SERVICE_HOST}/?Action=${API_ACTION}&Version=${API_VERSION}&Format=JSON`;
+
+  console.log('[SMS-V3] Fetch URL:', endpoint);
+  console.log('[SMS-V3] Request Headers:', signedRequest.headers);
+  console.log('[SMS-V3] Request Body:', signedRequest.body);
+
 
   // 发送请求到阿里云
-  const response = await fetch('https://dysmsapi.aliyuncs.com/', {
+  const response = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: requestBody
+    headers: signedRequest.headers,
+    body: signedRequest.body
   });
 
   const result = await response.json();
   
-  if (result.Code === 'OK') {
+  if (response.status === 200 && result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
   } else {
-    console.error('[SMS-VERIFY] Send failed:', result);
+    console.error('[SMS-V3] Send failed:', result);
     throw new Error(result.Message || '发送验证码失败');
   }
 }
@@ -238,7 +293,7 @@ export async function onRequestPost(context) {
         });
       }
 
-      const result = await checkVerifyCode(phoneNumber, env);
+      const result = await checkVerifyCode(phoneNumber, code, env);
       
       return new Response(JSON.stringify(result), {
         status: 200,
