@@ -1,4 +1,4 @@
-// functions/api/sms-verify.js - 适用于 Cloudflare Pages + Workers + KV
+// functions/api/sms-verify.js - 阿里云短信认证服务API (含SignatureNonce)
 
 // --- 短信服务配置 ---
 const SERVICE_HOST = 'dysmsapi.aliyuncs.com';
@@ -11,6 +11,13 @@ const API_ACTION = 'SendSms';
 function percentEncode(str) {
   return encodeURIComponent(str)
     .replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+/**
+ * 生成随机数作为SignatureNonce
+ */
+function generateSignatureNonce() {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
 /**
@@ -78,6 +85,9 @@ async function sendVerifyCode(phoneNumber, env) {
   // 当前时间戳（ISO格式，阿里云要求）
   const timestamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   
+  // 生成随机数作为SignatureNonce
+  const signatureNonce = generateSignatureNonce();
+  
   // 构建请求参数
   const params = {
     'AccessKeyId': accessKeyId,
@@ -90,6 +100,9 @@ async function sendVerifyCode(phoneNumber, env) {
     'TemplateCode': templateCode,
     'TemplateParam': JSON.stringify({ code: verifyCode }),
     'Timestamp': timestamp, // 阿里云要求的时间戳格式
+    'SignatureMethod': 'HMAC-SHA1', // 指定签名方法
+    'SignatureNonce': signatureNonce, // 防重放攻击的随机数
+    'SignatureVersion': '1.0', // 签名版本
     'Version': API_VERSION
   };
 
