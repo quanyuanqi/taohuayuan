@@ -25,15 +25,19 @@ async function hashSha256(data) {
 
 /**
  * V3 签名日期格式 (YYYYMMDDTHHMMSSZ)
+ * 修正：使用 ISO 字符串并裁剪，确保格式严格正确。
  */
 function formatV3Date(date) {
-    const year = date.getUTCFullYear().toString();
-    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = date.getUTCDate().toString().padStart(2, '0');
-    const hour = date.getUTCHours().toString().padStart(2, '0');
-    const minute = date.getUTCMinutes().toString().padStart(2, '0');
-    const second = date.getUTCSeconds().toString().padStart(2, '0');
-    return `${year}${month}${day}T${hour}${minute}${second}Z`;
+    // 1. 获取完整的 ISO 8601 字符串 (e.g., 2025-11-30T20:22:15.123Z)
+    const isoString = date.toISOString(); 
+    
+    // 2. 裁剪掉毫秒 (.123) 和横杠/冒号
+    // 目标格式: YYYYMMDDTHHMMSSZ
+    const formattedDate = isoString
+        .replace(/[-:]/g, '') // 移除横杠和冒号
+        .replace(/\.\d{3}/, ''); // 移除毫秒部分
+        
+    return formattedDate;
 }
 
 /**
@@ -49,13 +53,15 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
     // V3: CanonicalBodyHash (SHA256 of the JSON body)
     const bodyString = JSON.stringify(bodyParams);
     const contentHash = await hashSha256(bodyString);
+    
+    const formattedDate = formatV3Date(date);
 
     // V3: CanonicalHeaders
     const headers = {
         'x-acs-action': API_ACTION.toLowerCase(),
         'x-acs-version': API_VERSION.toLowerCase(),
         'x-acs-region-id': REGION_ID.toLowerCase(),
-        'x-acs-date': formatV3Date(date).toLowerCase(), 
+        'x-acs-date': formattedDate.toLowerCase(), // 修正：使用严格格式的日期
         'content-type': 'application/json'.toLowerCase(),
         'host': SERVICE_HOST.toLowerCase(),
         'x-acs-request-id': (Date.now().toString() + Math.random().toString(36).substr(2, 9)).toLowerCase() // Nonce
@@ -96,7 +102,6 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
     // V3: Signature (HMAC-SHA256)
     const encoder = new TextEncoder();
     
-    // 修正：使用 AccessKeySecret 作为密钥
     const keyData = encoder.encode(accessKeySecret);
     const messageData = encoder.encode(stringToSign);
     
@@ -114,7 +119,6 @@ async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
         .join('');
         
     // V3: Authorization Header
-    // 关键修正：Credential 必须包含在授权头中
     const authorization = `${SIGNATURE_ALGORITHM} Credential=${accessKeyId},SignedHeaders=${signedHeaders},Signature=${signatureHex}`;
 
     // 返回最终请求所需的头部和 JSON 请求体
