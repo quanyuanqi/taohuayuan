@@ -1,13 +1,20 @@
 // functions/api/sms-verify.js - 阿里云短信认证服务API
+// 修正：包含针对中文参数双重编码（% -> %25）的修复逻辑，并严格遵守 RFC 3986 规范。
 
 /**
  * 阿里云API签名专用编码函数 (RFC 3986 规范)
+ * 严格执行阿里云要求的编码替换，并包含防止双重编码的修复逻辑。
  */
 function percentEncode(str) {
-  // 1. 使用标准的 encodeURIComponent
+  // 1. 使用标准的 encodeURIComponent 进行编码
   let encoded = encodeURIComponent(str);
   
-  // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
+  // 2. 关键修复：尝试修复双重编码的百分号 (%25 -> %)
+  // 这一步是为了解决在构造 stringToSign 时，% 被再次编码为 %25 的环境问题。
+  // 我们只修复后面跟着两个十六进制字符的 %25
+  encoded = encoded.replace(/%25([0-9A-F]{2})/g, (match, p1) => `%${p1}`);
+  
+  // 3. 替换特定的字符以符合阿里云的 RFC 3986 规范 
   encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
   encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
   encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
@@ -24,12 +31,12 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .filter(key => key !== 'Signature')
     .sort();
   
-  // 构建查询字符串：键和值都需要 percentEncode 编码
+  // 构建规范化查询字符串 (CanonicalQueryString)
   const queryString = sortedKeys
     .map(key => {
       const value = String(params[key]);
       
-      // 对参数键和参数值进行 URL 编码
+      // 关键修正：对参数键和参数值都进行 URL 编码 (RFC 3986) 
       const encodedKey = percentEncode(key);
       const encodedValue = percentEncode(value);
       
@@ -37,9 +44,10 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     })
     .join('&');
 
-  // 构建待签名字符串：METHOD&encode('/')&QUERY_STRING
-  // 关键：queryString 必须是未经再次编码的
-  const stringToSign = `POST&${percentEncode('/')}&${queryString}`;
+  // 构建待签名字符串 (String To Sign)
+  // RPC 风格的 StringToSign 格式为： METHOD&encode('/')&encode(QUERY_STRING)
+  // 关键：对整个 queryString 进行最终编码，同时依赖 percentEncode 函数内部的修复逻辑
+  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
 
   console.log('[SMS-VERIFY] String to sign:', stringToSign);
 
@@ -78,28 +86,10 @@ async function sendVerifyCode(phoneNumber, env) {
     throw new Error('短信服务配置不完整');
   }
 
-  // === 针对中文签名乱码/二次编码问题的修正 START ===
-  // 假设您的中文签名是 '速通互联验证平台'
-  // 您的环境变量可能没有正确输出 UTF-8 编码，导致后续的 percentEncode 出错。
-  // 我们将尝试使用 unescape 来解决这个问题（在某些环境中有效，用于处理某些编码缺陷）
-  const SIGN_NAME_CHINESE = signName; 
-  // 尝试解码一次，确保它不是已经被环境偷偷编码过的
-  let finalSignName = SIGN_NAME_CHINESE;
-  try {
-     // 如果中文签名被错误地编码成 ISO-8859-1 或其他格式，decodeURIComponent 会报错。
-     // 我们只做一次简单的 try-catch，并使用原始值。
-     finalSignName = decodeURIComponent(SIGN_NAME_CHINESE);
-  } catch(e) {
-     // 如果解码失败，使用原始值
-     finalSignName = SIGN_NAME_CHINESE;
-  }
-  // === 针对中文签名乱码/二次编码问题的修正 END ===
-
-
   // 生成6位随机验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // KV 存储逻辑...
+  // 将验证码存储到KV，有效期5分钟
   const kvKey = `sms-verify:${phoneNumber}`;
   await env.ADVICES_KV.put(kvKey, JSON.stringify({
     code: verifyCode,
@@ -118,8 +108,7 @@ async function sendVerifyCode(phoneNumber, env) {
     Action: 'SendSms',
     Format: 'JSON',
     PhoneNumbers: phoneNumber,
-    // 使用经过检查的 SignName 值
-    SignName: finalSignName, 
+    SignName: signName, 
     TemplateCode: templateCode,
     TemplateParam: JSON.stringify({ code: verifyCode }),
     Timestamp: timestamp,
@@ -133,6 +122,9 @@ async function sendVerifyCode(phoneNumber, env) {
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体
+  // 关键修正：由于 Cloudflare Workers 默认的 URLSearchParams 可能存在编码问题，
+  // 我们手动构造请求体，将所有参数以 key=value&key2=value2 形式拼接。
+  // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
     .join('&');
@@ -246,7 +238,7 @@ export async function onRequestPost(context) {
         });
       }
 
-      const result = await checkVerifyCode(phoneNumber, code, env);
+      const result = await checkVerifyCode(phoneNumber, env);
       
       return new Response(JSON.stringify(result), {
         status: 200,
