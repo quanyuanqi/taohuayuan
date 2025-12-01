@@ -1,140 +1,37 @@
-// functions/api/sms-verify.js - 阿里云短信认证服务API (V3 签名 ACS3-HMAC-SHA256)
+// functions/api/sms-verify.js - 阿里云短信认证服务API (正确实现)
 
-// --- V3 签名配置 ---
-const REGION_ID = 'cn-hangzhou'; // V3 签名需要一个 Region ID
+// --- 短信服务配置 ---
 const SERVICE_HOST = 'dysmsapi.aliyuncs.com';
 const API_VERSION = '2017-05-25';
 const API_ACTION = 'SendSms';
-const SIGNATURE_ALGORITHM = 'ACS3-HMAC-SHA256';
-
-// --- V3 签名辅助函数 ---
 
 /**
- * SHA256 散列函数
+ * 计算签名
  */
-async function hashSha256(data) {
-    const encoder = new TextEncoder();
-    const buffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+function computeSignature(params, accessKeySecret) {
+  // 1. 参数排序
+  const sortedParams = Object.keys(params).sort().map(key => [key, params[key]]);
+  
+  // 2. 构建规范请求字符串
+  const canonicalString = sortedParams
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+  
+  // 3. 构建待签名字符串
+  const stringToSign = `POST&%2F&${encodeURIComponent(canonicalString)}`;
+  
+  // 4. 使用HMAC-SHA1计算签名
+  const crypto = require('crypto');
+  const signature = crypto
+    .createHmac('sha1', accessKeySecret + '&')
+    .update(stringToSign)
+    .digest('base64');
     
-    // Convert ArrayBuffer to hex string
-    return Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+  return signature;
 }
 
 /**
- * V3 签名日期格式 (YYYYMMDDTHHMMSSZ) - 阿里云要求的格式
- */
-function formatV3Date(date) {
-    // 获取完整的 ISO 8601 字符串 (e.g., 2025-11-30T20:22:15.123Z)
-    const isoString = date.toISOString(); 
-    
-    // 裁剪掉横杠、冒号和毫秒部分，保留 T 和 Z
-    // 目标格式: YYYYMMDDTHHMMSSZ
-    return isoString
-        .replace(/[-:]/g, '') // 移除横杠和冒号
-        .replace(/\.\d{3}/, ''); // 移除毫秒部分
-}
-
-/**
- * 阿里云API V3 签名函数 (ACS3-HMAC-SHA256)
- */
-async function signV3Request(accessKeyId, accessKeySecret, bodyParams, date) {
-    const httpMethod = 'POST';
-    const canonicalUri = '/';
-    
-    // V3: CanonicalQueryString (This API uses JSON body, so query string is empty)
-    const canonicalQueryString = '';
-    
-    // V3: CanonicalBodyHash (SHA256 of the JSON body)
-    const bodyString = JSON.stringify(bodyParams);
-    const contentHash = await hashSha256(bodyString);
-    
-    const formattedDate = formatV3Date(date);
-
-    // V3: CanonicalHeaders - 使用正确的日期格式
-    const headers = {
-        'x-acs-action': API_ACTION.toLowerCase(),
-        'x-acs-version': API_VERSION.toLowerCase(),
-        'x-acs-region-id': REGION_ID.toLowerCase(),
-        'x-acs-date': formattedDate, // 使用 YYYYMMDDTHHMMSSZ 格式
-        'content-type': 'application/json'.toLowerCase(),
-        'host': SERVICE_HOST.toLowerCase(),
-        'x-acs-request-id': (Date.now().toString() + Math.random().toString(36).substr(2, 9)).toLowerCase() // Nonce
-    };
-    
-    // Sort Header keys
-    const signedHeadersKeys = Object.keys(headers).sort();
-    
-    let canonicalHeaders = '';
-    for (const key of signedHeadersKeys) {
-        canonicalHeaders += `${key}:${headers[key]}\n`;
-    }
-    const signedHeaders = signedHeadersKeys.join(';');
-
-    // V3: CanonicalRequest
-    const canonicalRequest = [
-        httpMethod,
-        canonicalUri,
-        canonicalQueryString,
-        canonicalHeaders,
-        signedHeaders,
-        contentHash
-    ].join('\n');
-    
-    console.log('[SMS-V3] Canonical Request:\n', canonicalRequest);
-    
-    // V3: StringToSign
-    const canonicalRequestHash = await hashSha256(canonicalRequest);
-    
-    const stringToSign = [
-        SIGNATURE_ALGORITHM,
-        formattedDate, // 使用格式化的日期字符串
-        canonicalRequestHash
-    ].join('\n');
-    
-    console.log('[SMS-V3] String To Sign:\n', stringToSign);
-
-    // V3: Signature (HMAC-SHA256)
-    const encoder = new TextEncoder();
-    
-    const keyData = encoder.encode(accessKeySecret);
-    const messageData = encoder.encode(stringToSign);
-    
-    const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-    const signatureHex = Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-        
-    // V3: Authorization Header
-    const authorization = `${SIGNATURE_ALGORITHM} Credential=${accessKeyId},SignedHeaders=${signedHeaders},Signature=${signatureHex}`;
-
-    // 返回最终请求所需的头部和 JSON 请求体
-    return {
-        headers: {
-            ...headers,
-            'Authorization': authorization,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json' 
-        },
-        body: bodyString,
-    };
-}
-
-
-// --- 业务函数 ---
-
-/**
- * 发送短信验证码 (V3 签名)
+ * 发送短信验证码
  */
 async function sendVerifyCode(phoneNumber, env) {
   const accessKeyId = env.ALIYUN_ACCESS_KEY_ID;
@@ -157,32 +54,46 @@ async function sendVerifyCode(phoneNumber, env) {
     expiresAt: Date.now() + 5 * 60 * 1000
   }), { expirationTtl: 300 });
 
-  // V3 Request Body (业务参数通过 JSON Body 传递)
-  const requestBody = {
-    SignName: signName, 
-    TemplateCode: templateCode,
-    PhoneNumbers: phoneNumber,
-    TemplateParam: JSON.stringify({ code: verifyCode }),
+  // 当前时间戳
+  const timestamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  
+  // 构建请求参数
+  const params = {
+    'AccessKeyId': accessKeyId,
+    'Action': API_ACTION,
+    'Format': 'JSON',
+    'OutId': `verify-${Date.now()}`,
+    'PhoneNumbers': phoneNumber,
+    'RegionId': 'cn-hangzhou',
+    'SignName': signName,
+    'TemplateCode': templateCode,
+    'TemplateParam': JSON.stringify({ code: verifyCode }),
+    'Timestamp': timestamp,
+    'Version': API_VERSION
   };
-  
-  const now = new Date();
-  
-  // 签名 V3 请求
-  const signedRequest = await signV3Request(accessKeyId, accessKeySecret, requestBody, now);
-  
-  // V3 的 RPC 风格 API 通常将 Action 和 Version 放在 Query String 中，以保持兼容性
-  const endpoint = `https://${SERVICE_HOST}/?Action=${API_ACTION}&Version=${API_VERSION}&Format=JSON`;
 
-  console.log('[SMS-V3] Fetch URL:', endpoint);
-  console.log('[SMS-V3] Request Headers:', signedRequest.headers);
-  console.log('[SMS-V3] Request Body:', signedRequest.body);
+  // 计算签名
+  const signature = computeSignature(params, accessKeySecret);
+  params.Signature = signature;
 
+  // 构建请求体
+  const requestBody = Object.keys(params)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&');
+
+  const endpoint = `https://${SERVICE_HOST}/`;
+
+  console.log('[SMS] Request URL:', endpoint);
+  console.log('[SMS] Request Body:', requestBody);
 
   // 发送请求到阿里云
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: signedRequest.headers,
-    body: signedRequest.body
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': requestBody.length.toString()
+    },
+    body: requestBody
   });
 
   const result = await response.json();
@@ -190,8 +101,8 @@ async function sendVerifyCode(phoneNumber, env) {
   if (response.status === 200 && result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
   } else {
-    console.error('[SMS-V3] Send failed:', result);
-    throw new Error(result.Message || '发送验证码失败');
+    console.error('[SMS] Send failed:', result);
+    throw new Error(result.Message || result.Code || '发送验证码失败');
   }
 }
 
