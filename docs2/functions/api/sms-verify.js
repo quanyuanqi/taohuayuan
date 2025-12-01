@@ -1,4 +1,4 @@
-// functions/api/sms-verify.js - 阿里云短信认证服务API (正确实现)
+// functions/api/sms-verify.js - 适用于 Cloudflare Pages + Workers + KV
 
 // --- 短信服务配置 ---
 const SERVICE_HOST = 'dysmsapi.aliyuncs.com';
@@ -6,28 +6,46 @@ const API_VERSION = '2017-05-25';
 const API_ACTION = 'SendSms';
 
 /**
- * 计算签名
+ * URL编码函数（符合阿里云要求）
  */
-function computeSignature(params, accessKeySecret) {
+function percentEncode(str) {
+  return encodeURIComponent(str)
+    .replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+/**
+ * 计算阿里云API签名
+ */
+async function computeSignature(params, accessKeySecret) {
   // 1. 参数排序
-  const sortedParams = Object.keys(params).sort().map(key => [key, params[key]]);
+  const sortedKeys = Object.keys(params).sort();
   
   // 2. 构建规范请求字符串
-  const canonicalString = sortedParams
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+  const canonicalString = sortedKeys
+    .map(key => `${percentEncode(key)}=${percentEncode(params[key])}`)
     .join('&');
   
-  // 3. 构建待签名字符串
-  const stringToSign = `POST&%2F&${encodeURIComponent(canonicalString)}`;
+  // 3. 构建待签名字符串 (格式: HTTP_METHOD&URL_ENCODED(/)&URL_ENCODED(CANONICAL_STRING))
+  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalString)}`;
   
   // 4. 使用HMAC-SHA1计算签名
-  const crypto = require('crypto');
-  const signature = crypto
-    .createHmac('sha1', accessKeySecret + '&')
-    .update(stringToSign)
-    .digest('base64');
-    
-  return signature;
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(accessKeySecret + '&'); // 阿里云要求在密钥后加 &
+  const messageData = encoder.encode(stringToSign);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const signatureArray = Array.from(new Uint8Array(signature));
+  const signatureBase64 = btoa(String.fromCharCode.apply(null, signatureArray));
+  
+  return signatureBase64;
 }
 
 /**
@@ -43,18 +61,21 @@ async function sendVerifyCode(phoneNumber, env) {
     throw new Error('短信服务配置不完整');
   }
 
+  // 生成6位数字验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // KV 存储逻辑...
+  // 存储验证码到 KV（5分钟过期）
   const kvKey = `sms-verify:${phoneNumber}`;
   await env.ADVICES_KV.put(kvKey, JSON.stringify({
     code: verifyCode,
     phoneNumber: phoneNumber,
     createdAt: Date.now(),
-    expiresAt: Date.now() + 5 * 60 * 1000
-  }), { expirationTtl: 300 });
+    expiresAt: Date.now() + 5 * 60 * 1000 // 5分钟过期
+  }), { 
+    expirationTtl: 300 // 5分钟
+  });
 
-  // 当前时间戳
+  // 当前时间戳（ISO格式，阿里云要求）
   const timestamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   
   // 构建请求参数
@@ -62,36 +83,35 @@ async function sendVerifyCode(phoneNumber, env) {
     'AccessKeyId': accessKeyId,
     'Action': API_ACTION,
     'Format': 'JSON',
-    'OutId': `verify-${Date.now()}`,
+    'OutId': `verify-${Date.now()}`, // 可选：外部流水号
     'PhoneNumbers': phoneNumber,
-    'RegionId': 'cn-hangzhou',
+    'RegionId': 'cn-hangzhou', // 阿里云区域ID
     'SignName': signName,
     'TemplateCode': templateCode,
     'TemplateParam': JSON.stringify({ code: verifyCode }),
-    'Timestamp': timestamp,
+    'Timestamp': timestamp, // 阿里云要求的时间戳格式
     'Version': API_VERSION
   };
 
   // 计算签名
-  const signature = computeSignature(params, accessKeySecret);
+  const signature = await computeSignature(params, accessKeySecret);
   params.Signature = signature;
 
   // 构建请求体
   const requestBody = Object.keys(params)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .map(key => `${percentEncode(key)}=${percentEncode(params[key])}`)
     .join('&');
 
   const endpoint = `https://${SERVICE_HOST}/`;
 
   console.log('[SMS] Request URL:', endpoint);
-  console.log('[SMS] Request Body:', requestBody);
+  console.log('[SMS] Request Params:', params);
 
   // 发送请求到阿里云
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': requestBody.length.toString()
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     },
     body: requestBody
   });
@@ -99,6 +119,7 @@ async function sendVerifyCode(phoneNumber, env) {
   const result = await response.json();
   
   if (response.status === 200 && result.Code === 'OK') {
+    console.log('[SMS] Send success:', result);
     return { success: true, message: '验证码已发送' };
   } else {
     console.error('[SMS] Send failed:', result);
@@ -146,12 +167,15 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const { action, phoneNumber, code } = body || {};
 
-    // 验证手机号格式（11位数字）
+    // 验证手机号格式（11位数字，以1开头）
     const phoneRegex = /^1[3-9]\d{9}$/;
     if (phoneNumber && !phoneRegex.test(phoneNumber)) {
       return new Response(JSON.stringify({ error: '手机号格式不正确' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
     }
 
@@ -159,7 +183,10 @@ export async function onRequestPost(context) {
       if (!phoneNumber) {
         return new Response(JSON.stringify({ error: '手机号不能为空' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          }
         });
       }
 
@@ -168,29 +195,40 @@ export async function onRequestPost(context) {
       const lastSend = await env.ADVICES_KV.get(rateLimitKey);
       if (lastSend) {
         const lastSendTime = parseInt(lastSend);
-        if (Date.now() - lastSendTime < 60000) {
+        if (Date.now() - lastSendTime < 60000) { // 1分钟内
           return new Response(JSON.stringify({ error: '发送过于频繁，请稍后再试' }), {
             status: 429,
-            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            headers: { 
+              'Content-Type': 'application/json; charset=utf-8',
+              'Access-Control-Allow-Origin': '*'
+            }
           });
         }
       }
 
       const result = await sendVerifyCode(phoneNumber, env);
       
-      // 记录发送时间
-      await env.ADVICES_KV.put(rateLimitKey, Date.now().toString(), { expirationTtl: 60 });
+      // 记录发送时间（1分钟后自动过期）
+      await env.ADVICES_KV.put(rateLimitKey, Date.now().toString(), { 
+        expirationTtl: 60 
+      });
       
       return new Response(JSON.stringify(result), {
         status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
 
     } else if (action === 'check') {
       if (!phoneNumber || !code) {
         return new Response(JSON.stringify({ error: '手机号和验证码不能为空' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          }
         });
       }
 
@@ -198,13 +236,19 @@ export async function onRequestPost(context) {
       
       return new Response(JSON.stringify(result), {
         status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
 
     } else {
       return new Response(JSON.stringify({ error: '无效的操作类型' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
     }
 
@@ -221,11 +265,15 @@ export async function onRequestPost(context) {
       type: err.name || 'Error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      headers: { 
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      }
     });
   }
 }
 
+// 处理预检请求
 export async function onRequestOptions() {
   return new Response(null, {
     status: 204,
