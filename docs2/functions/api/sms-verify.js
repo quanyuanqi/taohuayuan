@@ -1,18 +1,14 @@
 // functions/api/sms-verify.js - 阿里云短信认证服务API (V2/RPC 风格 HMAC-SHA1)
-// 修正：根据客服建议，将 Endpoint 切换为 dypnsapi.aliyuncs.com
-
-const API_ENDPOINT = 'https://dypnsapi.aliyuncs.com/'; // <-- 关键修改：切换到 dypnsapi.aliyuncs.com
 
 /**
  * 阿里云API签名专用编码函数 (RPC V2 风格 RFC 3986 规范)
- * 仅执行 RPC 规范要求的替换： + -> %20, * -> %2A, %7E -> ~
  */
 function percentEncode(str) {
   // 1. 使用标准的 encodeURIComponent
   let encoded = encodeURIComponent(str);
   
   // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
-  // 保持与服务器待签名字符串一致的双重编码特性
+  // 关键：这里不再阻止 % 编码成 %25，以确保待签名字符串的最后一步编码正确。
   encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
   encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
   encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
@@ -47,6 +43,7 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   // 关键：对 CanonicalQueryString 进行第二次 percentEncode 编码
   const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalQueryString)}`;
 
+  console.log('[SMS-V2] Canonical Query String:', canonicalQueryString);
   console.log('[SMS-V2] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
@@ -127,7 +124,9 @@ async function sendVerifyCode(phoneNumber, env) {
   console.log('[SMS-V2] Request body (full, URL-encoded):', requestBody);
 
   // 发送请求到阿里云
-  const response = await fetch(API_ENDPOINT, { 
+  // 请注意：这里使用了标准的 dysmsapi.aliyuncs.com
+  // 如果需要切换，请将 URL 改为 'https://dypnsapi.aliyuncs.com/'
+  const response = await fetch('https://dysmsapi.aliyuncs.com/', { 
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
