@@ -1,20 +1,16 @@
 // functions/api/sms-verify.js - 阿里云短信认证服务API (V2/RPC 风格 HMAC-SHA1)
-// 修正：包含针对中文参数双重编码（% -> %25）的修复逻辑。
+// 修正：移除对百分号（%）的双重编码修复，确保 RPC 签名机制的最后一步能正确进行二次编码。
 
 /**
- * 阿里云API签名专用编码函数 (RFC 3986 规范)
- * 关键修复：加入了对双重编码的百分号 (%25) 的修复逻辑。
+ * 阿里云API签名专用编码函数 (RPC V2 风格 RFC 3986 规范)
+ * 仅执行 RPC 规范要求的替换： + -> %20, * -> %2A, %7E -> ~
  */
 function percentEncode(str) {
   // 1. 使用标准的 encodeURIComponent
   let encoded = encodeURIComponent(str);
   
-  // 2. 关键修复：尝试修复双重编码的百分号 (%25 -> %)
-  // 这一步是为了解决在 Cloudflare Workers 等环境中，中文字符或 JSON 字符串的百分号被二次编码的问题。
-  // 我们将所有形如 %25XX 的序列（XX是两个十六进制字符）变回 %XX
-  encoded = encoded.replace(/%25([0-9A-F]{2})/g, (match, p1) => `%${p1}`);
-  
-  // 3. 替换特定的字符以符合阿里云的 RFC 3986 规范
+  // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
+  // 关键：这里不再阻止 % 编码成 %25，以确保待签名字符串的最后一步编码正确。
   encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
   encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
   encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
@@ -31,12 +27,13 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .filter(key => key !== 'Signature')
     .sort();
   
-  // 构建规范化查询字符串
-  const queryString = sortedKeys
+  // 构建规范化查询字符串 (Canonical Query String)
+  // 步骤：对参数的键和值进行 RFC 3986 编码，然后拼接
+  const canonicalQueryString = sortedKeys
     .map(key => {
       const value = String(params[key]);
       
-      // 对参数键和参数值都进行 URL 编码
+      // 对参数键和参数值进行 RFC 3986 编码 (第一次编码)
       const encodedKey = percentEncode(key);
       const encodedValue = percentEncode(value);
       
@@ -44,9 +41,12 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     })
     .join('&');
 
-  // 构建待签名字符串：METHOD&encode('/')&encode(QUERY_STRING)
-  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(queryString)}`;
+  // 构建待签名字符串 (String To Sign)
+  // 格式： METHOD&encode('/')&encode(CanonicalQueryString)
+  // 关键：对 CanonicalQueryString 进行第二次 percentEncode 编码
+  const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalQueryString)}`;
 
+  console.log('[SMS-V2] Canonical Query String:', canonicalQueryString);
   console.log('[SMS-V2] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
@@ -87,7 +87,7 @@ async function sendVerifyCode(phoneNumber, env) {
   // 生成6位随机验证码
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // KV 存储逻辑...
+  // 将验证码存储到KV，有效期5分钟
   const kvKey = `sms-verify:${phoneNumber}`;
   await env.ADVICES_KV.put(kvKey, JSON.stringify({
     code: verifyCode,
@@ -120,7 +120,9 @@ async function sendVerifyCode(phoneNumber, env) {
   params.Signature = await signRequest(accessKeyId, accessKeySecret, params);
 
   // 构建请求体
-  // 我们将所有参数以 key=value&key2=value2 形式拼接，避免再次编码 Signature
+  // 注意：params[key] 中的 Signature 已经是经过编码的，不能再次编码。
+  // 其他参数如 SignName, TemplateParam 的值在 signRequest 中已经正确编码，
+  // 这里直接使用 key=value 拼接即可。
   const requestBody = Object.keys(params)
     .map(key => `${key}=${params[key]}`)
     .join('&');
