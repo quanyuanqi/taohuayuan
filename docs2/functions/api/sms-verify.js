@@ -1,12 +1,10 @@
 // functions/api/sms-verify.js - 阿里云号码认证服务API (V2/RPC 风格 HMAC-SHA1)
-// 修正：切换 Action 为 SendSmsVerifyCode，Endpoint 切换为 dypnsapi.aliyuncs.com
+// 修正：将参数名 PhoneNumbers 修正为 PhoneNumber 以符合 PNS 接口要求
 
-// 修正 1: 切换 API_ENDPOINT 到号码认证服务网关
 const API_ENDPOINT = 'https://dypnsapi.aliyuncs.com/'; 
 
 /**
  * 阿里云API签名专用编码函数 (RPC V2 风格 RFC 3986 规范)
- * 保持严格的双重编码兼容性，这是 V2/RPC 签名的关键
  */
 function percentEncode(str) {
   let encoded = encodeURIComponent(str);
@@ -22,7 +20,6 @@ function percentEncode(str) {
  * 阿里云API签名函数
  */
 async function signRequest(accessKeyId, accessKeySecret, params) {
-  // 对参数进行排序（不包括 Signature）
   const sortedKeys = Object.keys(params)
     .filter(key => key !== 'Signature')
     .sort();
@@ -42,7 +39,7 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   // 构建待签名字符串 (String To Sign)
   const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalQueryString)}`;
 
-  console.log('[SMS-V2] String to sign:', stringToSign);
+  console.log('[PNS-SMS] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
@@ -94,13 +91,12 @@ async function sendVerifyCode(phoneNumber, env) {
   
   const params = {
     AccessKeyId: accessKeyId,
-    // 修正 2: 切换 Action 从 SendSms 到 SendSmsVerifyCode
     Action: 'SendSmsVerifyCode', 
     Format: 'JSON',
-    PhoneNumbers: phoneNumber,
+    // <<< 关键修正：参数名从 PhoneNumbers 改为 PhoneNumber >>>
+    PhoneNumber: phoneNumber, 
     SignName: signName, 
     TemplateCode: templateCode,
-    // 继续使用我们自己生成的验证码，以保持 KV 校验逻辑
     TemplateParam: JSON.stringify({ code: verifyCode }), 
     Timestamp: timestamp,
     Version: '2017-05-25',
@@ -130,7 +126,6 @@ async function sendVerifyCode(phoneNumber, env) {
 
   const result = await response.json();
   
-  // PNS 接口的成功返回码通常也是 OK
   if (result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
   } else {
@@ -140,7 +135,7 @@ async function sendVerifyCode(phoneNumber, env) {
 }
 
 /**
- * 验证短信验证码 (此部分保持不变，继续在 KV 中验证)
+ * 验证短信验证码 (此部分保持不变)
  */
 async function checkVerifyCode(phoneNumber, code, env) {
   if (!phoneNumber || !code) {
