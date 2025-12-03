@@ -1,18 +1,16 @@
-// functions/api/sms-verify.js - 阿里云短信认证服务API (V2/RPC 风格 HMAC-SHA1)
-// 修正：根据客服建议，将 Endpoint 切换为 dypnsapi.aliyuncs.com
+// functions/api/sms-verify.js - 阿里云号码认证服务API (V2/RPC 风格 HMAC-SHA1)
+// 修正：切换 Action 为 SendSmsVerifyCode，Endpoint 切换为 dypnsapi.aliyuncs.com
 
-const API_ENDPOINT = 'https://dypnsapi.aliyuncs.com/'; // <-- 关键修改：切换到 dypnsapi.aliyuncs.com
+// 修正 1: 切换 API_ENDPOINT 到号码认证服务网关
+const API_ENDPOINT = 'https://dypnsapi.aliyuncs.com/'; 
 
 /**
  * 阿里云API签名专用编码函数 (RPC V2 风格 RFC 3986 规范)
- * 仅执行 RPC 规范要求的替换： + -> %20, * -> %2A, %7E -> ~
+ * 保持严格的双重编码兼容性，这是 V2/RPC 签名的关键
  */
 function percentEncode(str) {
-  // 1. 使用标准的 encodeURIComponent
   let encoded = encodeURIComponent(str);
   
-  // 2. 替换特定的字符以符合阿里云的 RFC 3986 规范
-  // 保持与服务器待签名字符串一致的双重编码特性
   encoded = encoded.replace(/\+/g, '%20'); // 替换 + 为 %20 (空格)
   encoded = encoded.replace(/\*/g, '%2A'); // 替换 * 为 %2A
   encoded = encoded.replace(/%7E/g, '~'); // 替换 %7E 回 ~
@@ -34,7 +32,6 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .map(key => {
       const value = String(params[key]);
       
-      // 对参数键和参数值进行 RFC 3986 编码 (第一次编码)
       const encodedKey = percentEncode(key);
       const encodedValue = percentEncode(value);
       
@@ -43,15 +40,12 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
     .join('&');
 
   // 构建待签名字符串 (String To Sign)
-  // 格式： METHOD&encode('/')&encode(CanonicalQueryString)
-  // 关键：对 CanonicalQueryString 进行第二次 percentEncode 编码
   const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonicalQueryString)}`;
 
   console.log('[SMS-V2] String to sign:', stringToSign);
 
   // 使用HMAC-SHA1签名
   const encoder = new TextEncoder();
-  // 签名密钥是 AccessKeySecret 加上一个 '&' 字符
   const keyData = encoder.encode(accessKeySecret + '&'); 
   const messageData = encoder.encode(stringToSign);
   
@@ -64,10 +58,8 @@ async function signRequest(accessKeyId, accessKeySecret, params) {
   );
   
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-  // ArrayBuffer 转换为 Base64
   const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   
-  // 签名值也需要进行 URL 编码 (用于放入请求参数 Signature 中)
   return percentEncode(signatureBase64);
 }
 
@@ -98,17 +90,18 @@ async function sendVerifyCode(phoneNumber, env) {
 
   // 构建阿里云短信API请求参数
   const now = new Date();
-  // 阿里云 API 需要 UTC 时间，且毫秒部分必须去除
   const timestamp = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
   
   const params = {
     AccessKeyId: accessKeyId,
-    Action: 'SendSms',
+    // 修正 2: 切换 Action 从 SendSms 到 SendSmsVerifyCode
+    Action: 'SendSmsVerifyCode', 
     Format: 'JSON',
     PhoneNumbers: phoneNumber,
     SignName: signName, 
     TemplateCode: templateCode,
-    TemplateParam: JSON.stringify({ code: verifyCode }),
+    // 继续使用我们自己生成的验证码，以保持 KV 校验逻辑
+    TemplateParam: JSON.stringify({ code: verifyCode }), 
     Timestamp: timestamp,
     Version: '2017-05-25',
     SignatureMethod: 'HMAC-SHA1',
@@ -124,7 +117,7 @@ async function sendVerifyCode(phoneNumber, env) {
     .map(key => `${key}=${params[key]}`)
     .join('&');
   
-  console.log('[SMS-V2] Request body (full, URL-encoded):', requestBody);
+  console.log('[PNS-SMS] Request body (full, URL-encoded):', requestBody);
 
   // 发送请求到阿里云
   const response = await fetch(API_ENDPOINT, { 
@@ -137,16 +130,17 @@ async function sendVerifyCode(phoneNumber, env) {
 
   const result = await response.json();
   
+  // PNS 接口的成功返回码通常也是 OK
   if (result.Code === 'OK') {
     return { success: true, message: '验证码已发送' };
   } else {
-    console.error('[SMS-V2] Send failed:', result);
+    console.error('[PNS-SMS] Send failed:', result);
     throw new Error(result.Message || '发送验证码失败');
   }
 }
 
 /**
- * 验证短信验证码
+ * 验证短信验证码 (此部分保持不变，继续在 KV 中验证)
  */
 async function checkVerifyCode(phoneNumber, code, env) {
   if (!phoneNumber || !code) {
@@ -248,7 +242,7 @@ export async function onRequestPost(context) {
     }
 
   } catch (err) {
-    console.error('[SMS-VERIFY] Error:', {
+    console.error('[PNS-SMS] Error:', {
       message: err.message,
       stack: err.stack,
       name: err.name
