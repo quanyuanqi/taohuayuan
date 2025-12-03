@@ -1,10 +1,11 @@
 // functions/api/sms-verify.js - 阿里云号码认证服务API (V2/RPC 风格 HMAC-SHA1)
-// 修正：将参数名 PhoneNumbers 修正为 PhoneNumber 以符合 PNS 接口要求
+// 修正：同步模板参数 {code, min}
 
 const API_ENDPOINT = 'https://dypnsapi.aliyuncs.com/'; 
 
 /**
  * 阿里云API签名专用编码函数 (RPC V2 风格 RFC 3986 规范)
+ * 保持严格的双重编码兼容性，这是 V2/RPC 签名的关键
  */
 function percentEncode(str) {
   let encoded = encodeURIComponent(str);
@@ -93,11 +94,11 @@ async function sendVerifyCode(phoneNumber, env) {
     AccessKeyId: accessKeyId,
     Action: 'SendSmsVerifyCode', 
     Format: 'JSON',
-    // <<< 关键修正：参数名从 PhoneNumbers 改为 PhoneNumber >>>
-    PhoneNumber: phoneNumber, 
+    PhoneNumber: phoneNumber, // 使用单数形式，兼容 PNS
     SignName: signName, 
     TemplateCode: templateCode,
-    TemplateParam: JSON.stringify({ code: verifyCode }), 
+    // <<< 最终修正：模板参数包含 code 和 min >>>
+    TemplateParam: JSON.stringify({ code: verifyCode, min: '5' }), 
     Timestamp: timestamp,
     Version: '2017-05-25',
     SignatureMethod: 'HMAC-SHA1',
