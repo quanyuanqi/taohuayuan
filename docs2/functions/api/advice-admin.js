@@ -2,11 +2,26 @@
 export async function onRequestGet(context) {
   const { env, request } = context;
   const url = new URL(request.url);
-  const password = url.searchParams.get('password');
+  const phoneNumber = url.searchParams.get('phone');
 
-  const adminPassword = env.ADMIN_PASSWORD || 'admin123';
-  if (password !== adminPassword) {
-    return new Response('Invalid password', { status: 401 });
+  // 验证手机号码是否已授权
+  if (!phoneNumber) {
+    return new Response('缺少手机号码', { status: 400 });
+  }
+
+  // 检查手机号码是否在授权列表中
+  let authorizedPhones = '';
+  try {
+    authorizedPhones = await env.ADMIN_CONFIG.get('AUTHORIZED_PHONES') || '';
+  } catch (err) {
+    authorizedPhones = env.ADMIN_AUTHORIZED_PHONES || '';
+  }
+  
+  const phoneList = authorizedPhones.split(',').map(phone => phone.trim()).filter(phone => phone);
+  const isAuthorized = phoneList.includes(phoneNumber);
+  
+  if (!isAuthorized) {
+    return new Response('该手机号未授权访问管理后台', { status: 403 });
   }
 
   try {
@@ -38,11 +53,26 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, password, action, reply, commentIndex, attachmentIndex } = body;
+  const { id, phoneNumber, action, reply, commentIndex, attachmentIndex } = body;
 
-  const adminPassword = env.ADMIN_PASSWORD || 'admin123';
-  if (password !== adminPassword) {
-    return new Response('Invalid password', { status: 401 });
+  // 验证手机号码是否已授权
+  if (!phoneNumber) {
+    return new Response('缺少手机号码', { status: 400 });
+  }
+
+  // 检查手机号码是否在授权列表中
+  let authorizedPhones = '';
+  try {
+    authorizedPhones = await env.ADMIN_CONFIG.get('AUTHORIZED_PHONES') || '';
+  } catch (err) {
+    authorizedPhones = env.ADMIN_AUTHORIZED_PHONES || '';
+  }
+  
+  const phoneList = authorizedPhones.split(',').map(phone => phone.trim()).filter(phone => phone);
+  const isAuthorized = phoneList.includes(phoneNumber);
+  
+  if (!isAuthorized) {
+    return new Response('该手机号未授权访问管理后台', { status: 403 });
   }
 
   try {
