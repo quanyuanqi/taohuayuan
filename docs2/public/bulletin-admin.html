@@ -349,60 +349,36 @@
       }
       
       try {
-        // 先验证短信验证码
-        const verifyRes = await fetch('/api/sms-verify', {
+        // 创建一个新的API来同时验证短信和授权
+        const authRes = await fetch('/api/admin-phone-auth-verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            action: 'check',
             phoneNumber: phoneNumber,
             code: verifyCode
           })
         });
         
-        const verifyResult = await verifyRes.json();
+        const authResult = await authRes.json();
         
-        if (verifyResult.success) {
-          // 短信验证成功后，检查管理员授权
-          try {
-            const authRes = await fetch('/api/admin-phone-auth', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                action: 'check',
-                phoneNumber: phoneNumber
-              })
-            });
-            
-            const authResult = await authRes.json();
-            
-            if (authResult.success) {
-              isPhoneVerified = true;
-              showVerifyMsg('验证成功！', 'success');
-              
-              // 存储登录状态
-              sessionStorage.setItem('bulletinAdminPhone', phoneNumber);
-              sessionStorage.setItem('bulletinAdminLoginTime', Date.now().toString());
-              currentSessionId = authResult.sessionId;
-              
-              // 延迟显示管理界面
-              setTimeout(() => {
-                showAdminContent();
-              }, 1000);
-              
-            } else {
-              showVerifyMsg(authResult.error || '授权验证失败', 'error');
-            }
-          } catch (authErr) {
-            console.error('授权验证失败:', authErr);
-            showVerifyMsg('授权验证失败，请重试', 'error');
-          }
+        if (authResult.success) {
+          isPhoneVerified = true;
+          showVerifyMsg('验证成功！', 'success');
+          
+          // 存储登录状态
+          sessionStorage.setItem('bulletinAdminPhone', phoneNumber);
+          sessionStorage.setItem('bulletinAdminLoginTime', Date.now().toString());
+          currentSessionId = authResult.sessionId;
+          
+          // 延迟显示管理界面
+          setTimeout(() => {
+            showAdminContent();
+          }, 1000);
+          
         } else {
-          showVerifyMsg(verifyResult.error || '验证码验证失败', 'error');
+          showVerifyMsg(authResult.error || '验证失败', 'error');
         }
         
       } catch (err) {
