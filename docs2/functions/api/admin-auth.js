@@ -13,7 +13,7 @@ export async function onRequestPost(context) {
       });
     }
 
-    if (password !== env.BULLETIN_PASS) {
+    if (password !== env.ADMIN_PASSWORD) {
       return new Response(JSON.stringify({ error: '密码错误' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
