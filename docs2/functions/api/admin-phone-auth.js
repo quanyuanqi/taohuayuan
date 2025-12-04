@@ -6,7 +6,6 @@ export async function onRequestPost(context) {
     let body;
     try {
       body = await request.json();
-      console.log('[ADMIN-PHONE-AUTH] Request body:', body);
     } catch (parseErr) {
       console.error('[ADMIN-PHONE-AUTH] JSON parse error:', parseErr);
       return new Response(JSON.stringify({ error: '请求参数格式错误' }), {
@@ -16,8 +15,6 @@ export async function onRequestPost(context) {
     }
     
     const { phoneNumber, action, code } = body;
-    
-    console.log('[ADMIN-PHONE-AUTH] Extracted params:', { phoneNumber, action, code: code ? '***' : 'undefined' });
 
     if (!phoneNumber) {
       return new Response(JSON.stringify({ error: '手机号不能为空' }), {
@@ -44,14 +41,11 @@ export async function onRequestPost(context) {
         });
       }
 
-      console.log('[ADMIN-PHONE-AUTH] 开始统一验证:', { phoneNumber, code: code.substring(0, 2) + '****' });
-
       // 第一步：验证短信验证码
       const kvKey = `sms-verify:${phoneNumber}`;
       const stored = await env.ADVICES_KV.get(kvKey, 'json');
       
       if (!stored) {
-        console.log('[ADMIN-PHONE-AUTH] 验证码不存在');
         return new Response(JSON.stringify({ error: '验证码不存在或已过期' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json; charset=utf-8' }
@@ -59,7 +53,6 @@ export async function onRequestPost(context) {
       }
 
       if (Date.now() > stored.expiresAt) {
-        console.log('[ADMIN-PHONE-AUTH] 验证码已过期');
         await env.ADVICES_KV.delete(kvKey);
         return new Response(JSON.stringify({ error: '验证码已过期' }), {
           status: 400,
@@ -68,25 +61,22 @@ export async function onRequestPost(context) {
       }
 
       if (stored.code !== code) {
-        console.log('[ADMIN-PHONE-AUTH] 验证码错误');
         return new Response(JSON.stringify({ error: '验证码错误' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json; charset=utf-8' }
         });
       }
 
-      console.log('[ADMIN-PHONE-AUTH] 短信验证成功，开始检查授权');
-
       // 第二步：检查管理员授权
+      let authorizedPhones = '';
+      try {
+        authorizedPhones = await env.ADMIN_CONFIG.get('AUTHORIZED_PHONES') || '';
+      } catch (err) {
+        authorizedPhones = env.ADMIN_AUTHORIZED_PHONES || '';
+      }
+      
       const phoneList = authorizedPhones.split(',').map(phone => phone.trim()).filter(phone => phone);
       const isAuthorized = phoneList.includes(phoneNumber);
-      
-      console.log('[ADMIN-PHONE-AUTH] 授权检查:', { 
-        authorizedPhones, 
-        phoneList, 
-        phoneNumber, 
-        isAuthorized 
-      });
 
       if (!isAuthorized) {
         // 验证成功但删除验证码（防止重复使用）
@@ -111,8 +101,6 @@ export async function onRequestPost(context) {
 
       // 验证成功后删除验证码（防止重复使用）
       await env.ADVICES_KV.delete(kvKey);
-
-      console.log('[ADMIN-PHONE-AUTH] 验证成功，生成会话:', sessionId);
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -210,18 +198,8 @@ export async function onRequestPost(context) {
     }
 
   } catch (error) {
-    console.error('[ADMIN-PHONE-AUTH] Error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      body: body
-    });
     return new Response(JSON.stringify({ 
-      error: '验证失败: ' + error.message,
-      details: {
-        name: error.name,
-        body: body
-      }
+      error: '验证失败: ' + error.message
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json; charset=utf-8' }
