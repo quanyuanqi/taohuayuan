@@ -349,13 +349,14 @@
       }
       
       try {
-        // 创建一个新的API来同时验证短信和授权
-        const authRes = await fetch('/api/admin-phone-auth-verify', {
+        // 使用统一的验证API
+        const authRes = await fetch('/api/admin-phone-auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            action: 'verify',
             phoneNumber: phoneNumber,
             code: verifyCode
           })
