@@ -141,9 +141,8 @@
       <div id="adminVerifyMsg" style="margin-top: 10px; font-size: 14px;"></div>
     </div>
 
-    <!-- 原有的密码登录区域（验证通过后显示） -->
-    <div id="passwordSection" style="display: none;">
-      <input id="password" type="password" placeholder="Enter admin password">
+    <!-- 建言管理区域（手机验证通过后显示） -->
+    <div id="managementSection" style="display: none;">
       <button onclick="loadAdminPosts()">加载建言</button>
     </div>
 
@@ -171,7 +170,7 @@
         if (timeDiff < 2 * 60 * 60 * 1000) {
           isPhoneVerified = true;
           document.getElementById('phoneVerification').style.display = 'none';
-          document.getElementById('passwordSection').style.display = 'block';
+          document.getElementById('managementSection').style.display = 'block';
           showAdminVerifyMsg('已通过手机验证', 'success');
           return;
         }
@@ -292,7 +291,7 @@
               // 延迟显示密码输入区域
               setTimeout(() => {
                 document.getElementById('phoneVerification').style.display = 'none';
-                document.getElementById('passwordSection').style.display = 'block';
+                document.getElementById('managementSection').style.display = 'block';
               }, 1000);
             } else {
               showAdminVerifyMsg(authResult.error || '授权验证失败', 'error');
@@ -344,15 +343,11 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) {
-        alert('请输入密码。');
-        return;
-      }
 
       try {
-        // 使用新的 API
-        const res = await fetch(`/api/advice-admin?password=${encodeURIComponent(password)}`);
+        // 直接调用API，使用手机号码验证
+        const adminPhone = sessionStorage.getItem('adminPhone');
+        const res = await fetch(`/api/advice-admin?phone=${encodeURIComponent(adminPhone)}`);
 
         if (!res.ok) {
           const msg = await res.text();
@@ -482,14 +477,13 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
       if (!confirm('确定删除该评论吗？')) return;
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'deleteComment', commentIndex: index })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'deleteComment', commentIndex: index })
         });
         const text = await res.text();
         if (res.ok) {
@@ -513,8 +507,6 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
       const contentInput = document.getElementById(`reply-content-${id}`);
       const msgEl = document.getElementById(`reply-msg-${id}`);
       const replyText = (contentInput?.value || '').trim();
@@ -526,10 +518,11 @@
       msgEl.textContent = '提交中...';
       msgEl.style.color = '#666';
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'reply', reply: replyText })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'reply', reply: replyText })
         });
         const text = await res.text();
         if (res.ok) {
@@ -553,18 +546,17 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
 
       if (!confirm('确定要删除这条建言吗？')) {
         return;
       }
 
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'delete' })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'delete' })
         });
 
         const msg = await res.text();
@@ -584,13 +576,12 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'approveAttachment', attachmentIndex: index })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'approveAttachment', attachmentIndex: index })
         });
         const text = await res.text();
         if (res.ok) {
@@ -608,13 +599,12 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'approveContent' })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'approveContent' })
         });
         const text = await res.text();
         if (res.ok) {
@@ -632,14 +622,13 @@
         showAdminVerifyMsg('请先完成手机验证', 'error');
         return;
       }
-      const password = document.getElementById('password').value.trim();
-      if (!password) return alert('请先输入密码');
       if (!confirm('确定删除该附件吗？')) return;
       try {
+        const adminPhone = sessionStorage.getItem('adminPhone');
         const res = await fetch('/api/advice-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, password, action: 'deletePendingAttachment', attachmentIndex: index })
+          body: JSON.stringify({ id, phoneNumber: adminPhone, action: 'deletePendingAttachment', attachmentIndex: index })
         });
         const text = await res.text();
         if (res.ok) {
