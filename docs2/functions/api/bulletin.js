@@ -45,9 +45,11 @@ export async function onRequest(context) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const session = await env.ADMIN_SESSIONS.get(token);
-    if (session !== 'authenticated') {
-      return new Response(JSON.stringify({ error: '发布失败，请尝试重新登录，或刷新页面，以确保安全。' }), {
+    const sessionData = await env.ADMIN_SESSIONS.get(token);
+    
+    // 检查会话是否存在且有效
+    if (!sessionData) {
+      return new Response(JSON.stringify({ error: '会话已过期，请重新登录' }), {
         status: 401,
         headers: { 
           'Content-Type': 'application/json; charset=utf-8',
@@ -58,6 +60,39 @@ export async function onRequest(context) {
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         }
       });
+    }
+
+    // 检查会话是否为超级管理员或已授权的手机号码
+    try {
+      const parsedSession = JSON.parse(sessionData);
+      if (!parsedSession.authenticated && sessionData !== 'authenticated') {
+        return new Response(JSON.stringify({ error: '无效的会话类型' }), {
+          status: 401,
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+    } catch (parseErr) {
+      // 兼容旧的字符串格式会话
+      if (sessionData !== 'authenticated') {
+        return new Response(JSON.stringify({ error: '会话验证失败，请重新登录' }), {
+          status: 401,
+          headers: { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
     }
   }
 
