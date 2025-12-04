@@ -3,8 +3,21 @@ export async function onRequestPost(context) {
   const { env, request } = context;
   
   try {
-    const body = await request.json();
-    const { phoneNumber, action } = body;
+    let body;
+    try {
+      body = await request.json();
+      console.log('[ADMIN-PHONE-AUTH] Request body:', body);
+    } catch (parseErr) {
+      console.error('[ADMIN-PHONE-AUTH] JSON parse error:', parseErr);
+      return new Response(JSON.stringify({ error: '请求参数格式错误' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      });
+    }
+    
+    const { phoneNumber, action, code } = body;
+    
+    console.log('[ADMIN-PHONE-AUTH] Extracted params:', { phoneNumber, action, code: code ? '***' : 'undefined' });
 
     if (!phoneNumber) {
       return new Response(JSON.stringify({ error: '手机号不能为空' }), {
@@ -197,8 +210,19 @@ export async function onRequestPost(context) {
     }
 
   } catch (error) {
-    console.error('Admin phone auth error:', error);
-    return new Response(JSON.stringify({ error: '验证失败' }), {
+    console.error('[ADMIN-PHONE-AUTH] Error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      body: body
+    });
+    return new Response(JSON.stringify({ 
+      error: '验证失败: ' + error.message,
+      details: {
+        name: error.name,
+        body: body
+      }
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json; charset=utf-8' }
     });
