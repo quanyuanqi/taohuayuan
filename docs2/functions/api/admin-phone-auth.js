@@ -24,7 +24,15 @@ export async function onRequestPost(context) {
 
     if (action === 'check') {
       // 检查手机号是否在授权管理员列表中
-      const authorizedPhones = env.ADMIN_AUTHORIZED_PHONES || '';
+      // 优先从 KV 存储读取，如果没有则从环境变量读取
+      let authorizedPhones = '';
+      try {
+        authorizedPhones = await env.ADMIN_CONFIG.get('AUTHORIZED_PHONES') || '';
+      } catch (err) {
+        // 如果 KV 不存在，使用环境变量
+        authorizedPhones = env.ADMIN_AUTHORIZED_PHONES || '';
+      }
+      
       const phoneList = authorizedPhones.split(',').map(phone => phone.trim()).filter(phone => phone);
       
       const isAuthorized = phoneList.includes(phoneNumber);
