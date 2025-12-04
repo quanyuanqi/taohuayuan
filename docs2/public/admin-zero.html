@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理员登录 - Advice Board</title>
+  <title>超级管理员 - Advice Board</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -12,27 +12,34 @@
       margin: 0;
       padding: 0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
-    .login-container {
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .login-container, .management-container {
       background: white;
       border-radius: 15px;
       padding: 40px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
+      margin-top: 50px;
     }
     h1 {
       color: #333;
       margin-bottom: 30px;
-      font-size: 24px;
+      text-align: center;
+      font-size: 28px;
+    }
+    h2 {
+      color: #555;
+      margin-bottom: 20px;
+      font-size: 20px;
+      border-bottom: 2px solid #e1e5e9;
+      padding-bottom: 10px;
     }
     .form-group {
       margin-bottom: 20px;
-      text-align: left;
     }
     label {
       display: block;
@@ -40,7 +47,7 @@
       color: #555;
       font-weight: 500;
     }
-    input[type="tel"], input[type="text"] {
+    input[type="password"], input[type="tel"] {
       width: 100%;
       padding: 12px 15px;
       border: 2px solid #e1e5e9;
@@ -49,17 +56,9 @@
       transition: border-color 0.3s ease;
       box-sizing: border-box;
     }
-    input[type="tel"]:focus, input[type="text"]:focus {
+    input[type="password"]:focus, input[type="tel"]:focus {
       outline: none;
       border-color: #667eea;
-    }
-    .verification-group {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-    }
-    .verification-group input {
-      flex: 1;
     }
     button {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -82,17 +81,23 @@
       transform: none;
       box-shadow: none;
     }
-    .btn-send {
-      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-      white-space: nowrap;
-      padding: 12px 15px;
-      font-size: 14px;
-    }
     .btn-login {
       width: 100%;
-      margin-top: 20px;
       padding: 15px;
       font-size: 18px;
+    }
+    .btn-add {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      margin-right: 10px;
+    }
+    .btn-delete {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    .btn-logout {
+      background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);
+      margin-bottom: 20px;
     }
     .error {
       color: #dc3545;
@@ -106,201 +111,329 @@
       margin-top: 10px;
       display: none;
     }
-    .countdown {
-      color: #6c757d;
-      font-size: 14px;
-    }
-    .admin-badge {
+    .super-admin-badge {
       background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);
       color: white;
-      padding: 5px 10px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 8px 15px;
+      border-radius: 25px;
+      font-size: 14px;
       margin-bottom: 20px;
       display: inline-block;
+      font-weight: bold;
+    }
+    .phone-list {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .phone-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border: 1px solid #e1e5e9;
+    }
+    .phone-item:last-child {
+      margin-bottom: 0;
+    }
+    .phone-number {
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+    }
+    .phone-meta {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .add-phone-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .add-phone-form input {
+      flex: 1;
+    }
+    .hidden {
+      display: none;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="admin-badge">管理员登录</div>
-    <h1>建言献策管理系统</h1>
-    
-    <form id="adminLoginForm">
-      <div class="form-group">
-        <label for="phoneNumber">手机号码</label>
-        <input type="tel" id="phoneNumber" placeholder="请输入管理员手机号" maxlength="11" required>
-      </div>
+  <div class="container">
+    <!-- 登录界面 -->
+    <div id="loginSection" class="login-container">
+      <div class="super-admin-badge">超级管理员</div>
+      <h1>建言献策管理系统</h1>
       
-      <div class="form-group">
-        <label for="verifyCode">短信验证码</label>
-        <div class="verification-group">
-          <input type="text" id="verifyCode" placeholder="请输入验证码" maxlength="6" required>
-          <button type="button" id="sendCodeBtn" class="btn-send" onclick="sendVerifyCode()">发送验证码</button>
+      <form id="superAdminLoginForm">
+        <div class="form-group">
+          <label for="adminPassword">超级管理员密码</label>
+          <input type="password" id="adminPassword" placeholder="请输入超级管理员密码" required>
+        </div>
+        
+        <button type="submit" class="btn-login">登录管理后台</button>
+        
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
+      </form>
+    </div>
+
+    <!-- 手机号码管理界面 -->
+    <div id="managementSection" class="management-container hidden">
+      <div class="super-admin-badge">超级管理员</div>
+      <h1>授权手机号码管理</h1>
+      
+      <button class="btn-logout" onclick="logout()">退出登录</button>
+      
+      <!-- 统计信息 -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number" id="totalPhones">0</div>
+          <div class="stat-label">授权手机号码</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="recentAdded">0</div>
+          <div class="stat-label">今日新增</div>
         </div>
       </div>
-      
-      <button type="submit" class="btn-login">登录管理后台</button>
-      
-      <div id="errorMsg" class="error"></div>
-      <div id="successMsg" class="success"></div>
-    </form>
+
+      <!-- 添加手机号码 -->
+      <h2>添加授权手机号码</h2>
+      <div class="add-phone-form">
+        <input type="tel" id="newPhoneNumber" placeholder="请输入手机号码" maxlength="11">
+        <button class="btn-add" onclick="addPhone()">添加</button>
+      </div>
+      <div id="addMsg" class="error"></div>
+
+      <!-- 手机号码列表 -->
+      <h2>当前授权手机号码列表</h2>
+      <div class="phone-list" id="phoneList">
+        <div style="text-align: center; color: #666; padding: 40px;">
+          暂无授权手机号码
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    let countdownTimer = null;
-    let countdown = 0;
+    let authorizedPhones = [];
 
-    // 表单提交处理
-    document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+    // 登录表单提交
+    document.getElementById('superAdminLoginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const phoneNumber = document.getElementById('phoneNumber').value.trim();
-      const verifyCode = document.getElementById('verifyCode').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
       const errorMsg = document.getElementById('errorMsg');
       const successMsg = document.getElementById('successMsg');
       
-      // 清除之前的消息
-      errorMsg.style.display = 'none';
-      successMsg.style.display = 'none';
-      
-      // 验证输入
-      if (!phoneNumber || !verifyCode) {
-        showError('请填写完整信息');
-        return;
-      }
-      
-      // 验证手机号格式
-      if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
-        showError('手机号格式不正确');
+      if (!password) {
+        showError('请输入密码');
         return;
       }
       
       try {
-        // 验证短信验证码
-        const verifyRes = await fetch('/api/sms-verify', {
+        const response = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            action: 'check',
-            phoneNumber: phoneNumber,
-            code: verifyCode
-          })
+          body: JSON.stringify({ password: password })
         });
         
-        const verifyResult = await verifyRes.json();
+        const result = await response.json();
         
-        if (verifyResult.success) {
-          // 验证成功，跳转到管理后台
-          successMsg.textContent = '验证成功，正在跳转...';
+        if (result.success) {
+          successMsg.textContent = '登录成功，正在跳转...';
           successMsg.style.display = 'block';
           
-          // 将手机号存储到sessionStorage，供admin.html验证使用
-          sessionStorage.setItem('adminPhone', phoneNumber);
-          sessionStorage.setItem('adminLoginTime', Date.now().toString());
+          // 存储登录状态
+          sessionStorage.setItem('superAdminSession', result.sessionId);
           
-          // 延迟跳转
+          // 延迟显示管理界面
           setTimeout(() => {
-            window.location.href = '/admin.html';
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('managementSection').classList.remove('hidden');
+            loadAuthorizedPhones();
           }, 1000);
           
         } else {
-          showError(verifyResult.error || '验证码验证失败');
+          showError(result.error || '登录失败');
         }
         
       } catch (err) {
-        console.error('验证失败:', err);
+        console.error('登录失败:', err);
         showError('网络错误，请重试');
       }
     });
 
-    // 发送验证码
-    async function sendVerifyCode() {
-      const phoneNumber = document.getElementById('phoneNumber').value.trim();
-      const sendBtn = document.getElementById('sendCodeBtn');
-      const errorMsg = document.getElementById('errorMsg');
-      const successMsg = document.getElementById('successMsg');
+    // 加载授权手机号码列表
+    async function loadAuthorizedPhones() {
+      try {
+        const response = await fetch('/api/admin-phone-list');
+        const result = await response.json();
+        
+        if (result.success) {
+          authorizedPhones = result.phones || [];
+          updatePhoneList();
+          updateStats();
+        } else {
+          showError('加载手机号码列表失败');
+        }
+      } catch (err) {
+        console.error('加载失败:', err);
+        showError('网络错误，请重试');
+      }
+    }
+
+    // 添加手机号码
+    async function addPhone() {
+      const phoneNumber = document.getElementById('newPhoneNumber').value.trim();
+      const addMsg = document.getElementById('addMsg');
       
-      // 清除之前的消息
-      errorMsg.style.display = 'none';
-      successMsg.style.display = 'none';
-      
-      // 验证手机号
       if (!phoneNumber) {
-        showError('请输入手机号');
+        showAddMsg('请输入手机号码', 'error');
         return;
       }
       
       if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
-        showError('手机号格式不正确');
+        showAddMsg('手机号格式不正确', 'error');
         return;
       }
       
-      // 检查是否在倒计时中
-      if (countdown > 0) {
+      if (authorizedPhones.includes(phoneNumber)) {
+        showAddMsg('该手机号码已存在', 'error');
         return;
       }
       
       try {
-        // 禁用按钮
-        sendBtn.disabled = true;
-        sendBtn.textContent = '发送中...';
-        
-        // 发送验证码请求
-        const response = await fetch('/api/sms-verify', {
+        const response = await fetch('/api/admin-phone-manage', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            action: 'send',
-            phoneNumber: phoneNumber
+            action: 'add',
+            phoneNumber: phoneNumber,
+            sessionId: sessionStorage.getItem('superAdminSession')
           })
         });
         
         const result = await response.json();
         
         if (result.success) {
-          successMsg.textContent = '验证码已发送';
-          successMsg.style.display = 'block';
-          
-          // 开始倒计时
-          startCountdown();
-          
+          showAddMsg('添加成功', 'success');
+          document.getElementById('newPhoneNumber').value = '';
+          loadAuthorizedPhones(); // 重新加载列表
         } else {
-          showError(result.error || '发送验证码失败');
-          sendBtn.disabled = false;
-          sendBtn.textContent = '发送验证码';
+          showAddMsg(result.error || '添加失败', 'error');
         }
         
       } catch (err) {
-        console.error('发送验证码失败:', err);
-        showError('网络错误，请重试');
-        sendBtn.disabled = false;
-        sendBtn.textContent = '发送验证码';
+        console.error('添加失败:', err);
+        showAddMsg('网络错误，请重试', 'error');
       }
     }
 
-    // 开始倒计时
-    function startCountdown() {
-      const sendBtn = document.getElementById('sendCodeBtn');
-      countdown = 60;
+    // 删除手机号码
+    async function deletePhone(phoneNumber) {
+      if (!confirm(`确定要删除手机号码 ${phoneNumber} 吗？`)) {
+        return;
+      }
       
-      countdownTimer = setInterval(() => {
-        if (countdown > 0) {
-          sendBtn.textContent = `${countdown}秒后重发`;
-          sendBtn.classList.add('countdown');
-          countdown--;
+      try {
+        const response = await fetch('/api/admin-phone-manage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'delete',
+            phoneNumber: phoneNumber,
+            sessionId: sessionStorage.getItem('superAdminSession')
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          loadAuthorizedPhones(); // 重新加载列表
         } else {
-          clearInterval(countdownTimer);
-          sendBtn.textContent = '发送验证码';
-          sendBtn.classList.remove('countdown');
-          sendBtn.disabled = false;
-          countdown = 0;
+          showError(result.error || '删除失败');
         }
-      }, 1000);
+        
+      } catch (err) {
+        console.error('删除失败:', err);
+        showError('网络错误，请重试');
+      }
+    }
+
+    // 更新手机号码列表显示
+    function updatePhoneList() {
+      const phoneList = document.getElementById('phoneList');
+      
+      if (authorizedPhones.length === 0) {
+        phoneList.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">暂无授权手机号码</div>';
+        return;
+      }
+      
+      phoneList.innerHTML = authorizedPhones.map(phone => `
+        <div class="phone-item">
+          <div>
+            <div class="phone-number">${phone}</div>
+            <div class="phone-meta">授权管理员</div>
+          </div>
+          <button class="btn-delete" onclick="deletePhone('${phone}')">删除</button>
+        </div>
+      `).join('');
+    }
+
+    // 更新统计信息
+    function updateStats() {
+      document.getElementById('totalPhones').textContent = authorizedPhones.length;
+      
+      // 计算今日新增（这里简化处理，实际应该从服务器获取）
+      const today = new Date().toDateString();
+      const todayAdded = authorizedPhones.filter(phone => {
+        // 这里应该有添加时间信息，暂时显示0
+        return false;
+      }).length;
+      document.getElementById('recentAdded').textContent = todayAdded;
+    }
+
+    // 退出登录
+    function logout() {
+      sessionStorage.removeItem('superAdminSession');
+      document.getElementById('managementSection').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('adminPassword').value = '';
+      hideMessages();
     }
 
     // 显示错误消息
@@ -308,12 +441,52 @@
       const errorMsg = document.getElementById('errorMsg');
       errorMsg.textContent = message;
       errorMsg.style.display = 'block';
+      document.getElementById('successMsg').style.display = 'none';
     }
 
-    // 页面加载时清除可能存在的登录状态
+    // 显示添加消息
+    function showAddMsg(message, type) {
+      const addMsg = document.getElementById('addMsg');
+      addMsg.textContent = message;
+      addMsg.style.display = 'block';
+      addMsg.style.color = type === 'success' ? '#28a745' : '#dc3545';
+      
+      // 3秒后自动隐藏
+      setTimeout(() => {
+        addMsg.style.display = 'none';
+      }, 3000);
+    }
+
+    // 隐藏所有消息
+    function hideMessages() {
+      document.getElementById('errorMsg').style.display = 'none';
+      document.getElementById('successMsg').style.display = 'none';
+      document.getElementById('addMsg').style.display = 'none';
+    }
+
+    // 页面加载时检查登录状态
     window.addEventListener('load', function() {
-      sessionStorage.removeItem('adminPhone');
-      sessionStorage.removeItem('adminLoginTime');
+      const sessionId = sessionStorage.getItem('superAdminSession');
+      if (sessionId) {
+        // 验证会话是否有效
+        fetch('/api/admin-auth-check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sessionId: sessionId })
+        }).then(response => response.json())
+        .then(result => {
+          if (result.success) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('managementSection').classList.remove('hidden');
+            loadAuthorizedPhones();
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem('superAdminSession');
+        });
+      }
     });
   </script>
 </body>
