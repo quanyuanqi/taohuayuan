@@ -764,26 +764,26 @@
           : '';
 
         const commentForm = `<div class="comment-box" onclick="event.stopPropagation();">
-          <div style="font-weight:bold; margin-bottom:2px;">我要评论：</div>
-          <div style="margin-bottom:2px;">
+          <div style="font-weight:bold;">我要评论：</div>
+          <div>
             <input type="text" id="c-author-${advice.id}" class="comment-author-input" placeholder="网名（可选）" style="width:100%; max-width: 360px;" />
           </div>
-          <div style="margin-bottom:2px;">
+          <div>
             <textarea id="c-content-${advice.id}" class="comment-content-input" placeholder="评论内容" style="width:100%;"></textarea>
           </div>
-          <div style="margin-bottom:2px;">
+          <div>
             <input type="tel" id="c-phone-${advice.id}" class="comment-author-input" placeholder="手机号" style="width:100%; max-width: 360px;" maxlength="11" />
           </div>
-          <div style="margin-bottom:2px;">
+          <div>
             <button type="button" class="comment-submit-btn" onclick="event.stopPropagation(); sendVerifyCode('${advice.id}')" id="c-send-btn-${advice.id}" style="padding:6px 12px; white-space:nowrap; width:100%; max-width: 200px;">发送验证码</button>
           </div>
-          <div style="margin-bottom:2px;">
+          <div>
             <input type="text" id="c-verify-${advice.id}" class="comment-author-input" placeholder="短信验证码" style="width:100%; max-width: 360px;" maxlength="6" />
           </div>
-          <div style="font-size:0.75rem; color:#999; margin-bottom:2px;">
+          <div style="font-size:0.75rem; color:#999;">
             网站不收集、不存储用户手机号码信息，短信验证服务由阿里云'速通互联验证平台'提供。
           </div>
-          <div style="margin-bottom:2px;">
+          <div>
             <button class="comment-submit-btn" onclick="event.stopPropagation(); submitComment('${advice.id}')">提交</button>
           </div>
           <div id="c-msg-${advice.id}" style="font-size:0.85rem;color:#666;"></div>
